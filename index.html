@@ -13,12 +13,14 @@
     <div id="ink" aria-hidden="true"></div>
     <textarea id="text" aria-label="Edit text" aria-keyshortcuts="Alt+1 Alt+2 Alt+3 Alt+4 Alt+5 Meta+Enter Control+Enter" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
     <div id="effects" aria-hidden="true"><div id="caret" class="beam"></div></div>
+    <ol id="handoffs" aria-label="Handoff history"></ol>
     <div id="controls">
       <button id="pass" type="button">Pass ↗</button>
-      <button id="color-toggle" type="button" popovertarget="colors" aria-label="Cursor color and opacity"></button>
+      <button id="color-toggle" type="button" popovertarget="colors" aria-label="Choose next collaborator"></button>
     </div>
     <div id="colors" popover>
-      <div id="swatches" role="group" aria-label="Cursor colors"></div>
+      <div id="next-label">Pass to</div>
+      <div id="swatches" role="group" aria-label="Next collaborator"></div>
       <label id="opacity-control">Opacity <input id="opacity" type="range" min="10" max="70" value="40"></label>
     </div>
   </main>

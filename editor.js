@@ -10,22 +10,24 @@ const colorMenu = document.querySelector('#colors');
 const swatches = document.querySelector('#swatches');
 const opacityControl = document.querySelector('#opacity');
 const passButton = document.querySelector('#pass');
+const handoffHistory = document.querySelector('#handoffs');
+const colorToggle = document.querySelector('#color-toggle');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-const colors = [
-  ['Lemon', '#efff35'],
-  ['Lime', '#8dff00'],
-  ['Cyan', '#00e2fa'],
-  ['Blue', '#1299ff'],
-  ['Magenta', '#ff00c8'],
+const people = [
+  { name: 'Ari', color: '#efff35' },
+  { name: 'Lin', color: '#8dff00' },
+  { name: 'Kai', color: '#00e2fa' },
+  { name: 'Mina', color: '#1299ff' },
+  { name: 'Noa', color: '#ff00c8' },
 ];
 
-let activeColor = colors[1][1];
+let active = people[1];
+let recipient;
 let point;
 let composing = false;
 let pendingFrame = 0;
 let mirroredValue;
-let passCount = 0;
 let beforeEdit;
 let draft;
 const layers = [];
@@ -43,32 +45,64 @@ function wakeCaret() {
   blink.currentTime = 0;
 }
 
-function setColor([name, color]) {
-  if (color !== activeColor) draft = undefined;
-  activeColor = color;
-  document.documentElement.style.setProperty('--accent', color);
-  for (const swatch of swatches.children) {
-    swatch.setAttribute('aria-pressed', String(swatch.dataset.color === color));
-  }
-  wakeCaret();
-  announcement.textContent = name;
+function avatar(person) {
+  const badge = document.createElement('span');
+  badge.className = 'avatar';
+  badge.style.setProperty('--person-color', person.color);
+  badge.title = person.name;
+  badge.setAttribute('role', 'img');
+  badge.setAttribute('aria-label', person.name);
+  badge.textContent = person.name[0];
+  return badge;
 }
 
-for (const [name, color] of colors) {
+function nextPerson() {
+  return recipient ?? people[(people.indexOf(active) + 1) % people.length];
+}
+
+function updateRecipients() {
+  const next = nextPerson();
+  colorToggle.style.setProperty('--accent', next.color);
+  colorToggle.title = `Pass to ${next.name}`;
+  passButton.setAttribute('aria-label', `Pass to ${next.name}`);
+  for (const [index, swatch] of [...swatches.children].entries()) {
+    swatch.disabled = people[index] === active;
+    swatch.setAttribute('aria-pressed', String(people[index] === next));
+  }
+}
+
+function chooseRecipient(person) {
+  if (person === active) return;
+  recipient = person;
+  updateRecipients();
+  announcement.textContent = `Next collaborator: ${person.name}`;
+}
+
+function recordTurn(person) {
+  handoffHistory.lastElementChild?.removeAttribute('aria-current');
+  const item = document.createElement('li');
+  item.setAttribute('aria-current', 'step');
+  item.append(avatar(person));
+  handoffHistory.append(item);
+  handoffHistory.scrollLeft = handoffHistory.scrollWidth;
+}
+
+for (const person of people) {
   const swatch = document.createElement('button');
   swatch.type = 'button';
   swatch.className = 'swatch';
-  swatch.dataset.color = color;
-  swatch.style.setProperty('--swatch', color);
-  swatch.setAttribute('aria-label', name);
-  swatch.setAttribute('aria-pressed', String(color === activeColor));
+  swatch.setAttribute('aria-label', person.name);
+  swatch.append(avatar(person));
   swatch.addEventListener('click', () => {
+    chooseRecipient(person);
     colorMenu.hidePopover();
     editor.focus({ preventScroll: true });
-    setColor([name, color]);
   });
   swatches.append(swatch);
 }
+
+updateRecipients();
+recordTurn(active);
 
 opacityControl.addEventListener('input', () => {
   ink.style.setProperty('--ink-opacity', opacityControl.valueAsNumber / 100);
@@ -77,7 +111,7 @@ opacityControl.addEventListener('input', () => {
 function mark(start, end) {
   if (start === end) return;
   if (!draft) {
-    draft = { color: activeColor, ranges: [] };
+    draft = { person: active, ranges: [] };
     layers.push(draft);
   }
   const ranges = [...draft.ranges, { start, end }].sort((a, b) => a.start - b.start);
@@ -103,8 +137,13 @@ function recordEdit({ value: old, start, end }, value) {
     newRight--;
   }
   const shift = newRight - oldRight;
+  const continuation = oldRight === left && draft?.ranges.find(range => range.start < left && range.end === left);
   for (const layer of layers) {
     layer.ranges = layer.ranges.map(range => {
+      if (continuation && range.end === left && range.start < continuation.end
+        && range.end > continuation.start) {
+        return { start: range.start, end: newRight };
+      }
       if (range.end <= left) return range;
       if (range.start >= oldRight) return { start: range.start + shift, end: range.end + shift };
       return {
@@ -122,7 +161,10 @@ function renderInk(pulseLayer, passing = false) {
   const range = document.createRange();
   const fragment = document.createDocumentFragment();
   const pulses = [];
+  const badges = [];
+  const rowBadges = new Map();
   for (const layer of layers) {
+    let needsBadge = true;
     for (const { start, end } of layer.ranges) {
       range.setStart(mirror.firstChild, start);
       range.setEnd(mirror.firstChild, end);
@@ -130,17 +172,27 @@ function renderInk(pulseLayer, passing = false) {
         if (!rect.width) continue;
         const wash = document.createElement('div');
         wash.className = 'wash';
-        wash.style.setProperty('--wash-color', layer.color);
+        wash.style.setProperty('--wash-color', layer.person.color);
         wash.style.left = `${rect.left - bounds.left - editor.scrollLeft - 3}px`;
         wash.style.top = `${rect.top - bounds.top - editor.scrollTop}px`;
         wash.style.width = `${rect.width + 12}px`;
         wash.style.height = `${rect.height}px`;
         fragment.append(wash);
+        if (needsBadge) {
+          const badge = avatar(layer.person);
+          const row = Math.round(rect.top - bounds.top - editor.scrollTop);
+          const slot = rowBadges.get(row) ?? 0;
+          badge.style.left = `${rect.left - bounds.left - editor.scrollLeft + slot * 20}px`;
+          badge.style.top = `${row - 16}px`;
+          rowBadges.set(row, slot + 1);
+          badges.push(badge);
+          needsBadge = false;
+        }
         if (layer === pulseLayer) pulses.push(wash);
       }
     }
   }
-  ink.replaceChildren(fragment);
+  ink.replaceChildren(fragment, ...badges);
   if (reduceMotion.matches) return;
   const opacity = opacityControl.valueAsNumber / 100;
   for (const wash of pulses) {
@@ -190,14 +242,16 @@ function scheduleCaret() {
   });
 }
 
-function trace(from, { x, y, duration, delay = 0, opacity, width = 0 }) {
+function trace(from, { x, y, duration, delay = 0, opacity, width = 0, target }) {
   const layer = document.createElement('div');
   layer.className = width ? 'ribbon' : 'beam';
-  layer.style.setProperty('--beam-color', activeColor);
+  layer.style.setProperty('--beam-color', active.color);
   if (width) {
     layer.style.width = `${width}px`;
     layer.style.transformOrigin = x < 0 ? 'left center' : 'right center';
-    layer.style.background = `linear-gradient(to ${x < 0 ? 'left' : 'right'}, transparent, ${activeColor})`;
+    layer.style.background = target
+      ? `linear-gradient(90deg, ${active.color}, color-mix(in srgb, ${active.color}, ${target.color}) 40%, color-mix(in srgb, ${target.color} 60%, transparent) 72%, transparent)`
+      : `linear-gradient(to ${x < 0 ? 'left' : 'right'}, transparent, ${active.color})`;
   }
   effects.insertBefore(layer, caret);
   const left = from.x - (x >= 0 ? width : 0);
@@ -213,26 +267,32 @@ function trace(from, { x, y, duration, delay = 0, opacity, width = 0 }) {
 function pass() {
   editor.focus();
   const from = updateCaret();
+  const next = nextPerson();
   mark(editor.selectionStart, editor.selectionEnd);
   renderInk(draft, true);
   draft = undefined;
   wakeCaret();
   if (!reduceMotion.matches) {
-    const direction = from.x < stage.clientWidth * .64 ? 1 : -1;
-    const distance = Math.min(180, stage.clientWidth * .3);
+    const distance = Math.max(28, Math.min(180, stage.clientWidth - from.x - 8));
     const rise = from.y < 40 ? 20 : -26;
-    trace(from, { x: distance * direction, y: rise, duration: 700, opacity: .64, width: 42 });
-    for (let layer = 0; layer < 6; layer++) {
+    for (let layer = 0; layer < 3; layer++) {
       trace(from, {
-        x: distance * (1 - layer * .1) * direction,
+        x: distance * (1 - layer * .1),
         y: rise * (1 - layer * .1),
-        duration: 620 - layer * 38,
-        delay: layer * 21,
-        opacity: .9 - layer * .09,
+        duration: 950 - layer * 75,
+        delay: layer * 45,
+        opacity: .48 - layer * .09,
+        width: 44 + layer * 18,
+        target: next,
       });
     }
   }
-  announcement.textContent = `Pass ${++passCount}`;
+  announcement.textContent = `${active.name} passed to ${next.name}`;
+  active = next;
+  recipient = undefined;
+  document.documentElement.style.setProperty('--accent', active.color);
+  recordTurn(active);
+  updateRecipients();
 }
 
 editor.addEventListener('beforeinput', () => {
@@ -278,7 +338,7 @@ editor.addEventListener('keydown', event => {
   if (event.isComposing || composing) return;
   if (event.altKey && !event.metaKey && !event.ctrlKey && /^Digit[1-5]$/.test(event.code)) {
     event.preventDefault();
-    setColor(colors[Number(event.code.slice(-1)) - 1]);
+    chooseRecipient(people[Number(event.code.slice(-1)) - 1]);
   }
   if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
     event.preventDefault();

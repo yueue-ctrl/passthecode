@@ -22,6 +22,45 @@ body { margin: 0; background: #fff; color: var(--ink); }
   opacity: var(--ink-opacity, .4);
   transform-origin: left center;
 }
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--person-color) 43%, white);
+  color: var(--ink);
+  font: 700 10px var(--mono);
+}
+#ink .avatar {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  font-size: 9px;
+}
+#handoffs {
+  position: absolute;
+  left: 16px;
+  right: 132px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 0;
+  padding: 2px 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+#handoffs li { display: flex; flex: none; align-items: center; }
+#handoffs li + li::before {
+  content: "→" / "";
+  margin: 0 5px;
+  color: #737373;
+  font: 12px var(--mono);
+}
+#handoffs [aria-current] .avatar { outline: 1px solid currentColor; outline-offset: 1px; }
 .beam, .ribbon { position: absolute; top: 0; left: 0; }
 .beam {
   width: 9px;
@@ -63,7 +102,7 @@ body { margin: 0; background: #fff; color: var(--ink); }
   cursor: pointer;
 }
 #pass:hover { background: #f4f4f4; }
-#color-toggle::before, .swatch::before {
+#color-toggle::before {
   content: "";
   width: 14px;
   height: 14px;
@@ -82,6 +121,8 @@ body { margin: 0; background: #fff; color: var(--ink); }
   background: #fff;
 }
 #swatches { display: flex; gap: 2px; }
+#next-label { padding: 6px; font: 11px var(--mono); }
+.swatch:disabled { opacity: .45; cursor: default; }
 #opacity-control { display: flex; align-items: center; gap: 8px; padding: 6px; font: 11px var(--mono); }
 #opacity { width: 95px; accent-color: var(--ink); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
