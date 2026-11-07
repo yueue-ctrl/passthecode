@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pass the Code</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="editor.js" defer></script>
+</head>
+<body>
+  <main id="stage">
+    <div id="mirror" aria-hidden="true"></div>
+    <div id="ink" aria-hidden="true"></div>
+    <textarea id="text" aria-label="Edit text" aria-keyshortcuts="Alt+1 Alt+2 Alt+3 Alt+4 Alt+5 Meta+Enter Control+Enter" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    <div id="effects" aria-hidden="true"><div id="caret" class="beam"></div></div>
+    <div id="controls">
+      <button id="pass" type="button">Pass ↗</button>
+      <button id="color-toggle" type="button" popovertarget="colors" aria-label="Cursor color and opacity"></button>
+    </div>
+    <div id="colors" popover>
+      <div id="swatches" role="group" aria-label="Cursor colors"></div>
+      <label id="opacity-control">Opacity <input id="opacity" type="range" min="10" max="70" value="40"></label>
+    </div>
+  </main>
+  <span id="announcement" class="sr-only" role="status"></span>
+</body>
+</html>
