@@ -3,12 +3,14 @@ const mirror = document.querySelector('#mirror');
 const stage = document.querySelector('#stage');
 const effects = document.querySelector('#effects');
 const ink = document.querySelector('#ink');
+const inkNames = document.querySelector('#ink-names');
 const caret = document.querySelector('#caret');
 const beamHeight = caret.offsetHeight;
 const announcement = document.querySelector('#announcement');
 const colorMenu = document.querySelector('#colors');
 const swatches = document.querySelector('#swatches');
 const opacityControl = document.querySelector('#opacity');
+const inkView = document.querySelector('#ink-view');
 const passButton = document.querySelector('#pass');
 const handoffHistory = document.querySelector('#handoffs');
 const colorToggle = document.querySelector('#color-toggle');
@@ -31,6 +33,64 @@ let mirroredValue;
 let beforeEdit;
 let draft;
 const layers = [];
+let hoveredInk;
+
+function hideInkNames() {
+  hoveredInk = undefined;
+  inkNames.replaceChildren();
+}
+
+function showInkNames(event) {
+  if (event.buttons || event.pointerType === 'touch' || !layers.length) return;
+  const { clientX, clientY } = event;
+  const view = inkView.value;
+  const target = [...ink.querySelectorAll('[data-person]')].find(element => {
+    const rect = element.getBoundingClientRect();
+    const slop = view === 'wash' ? 0 : 4;
+    return clientX >= rect.left - slop && clientX <= rect.right + slop
+      && clientY >= rect.top && clientY < rect.bottom;
+  });
+  const anchor = view === 'stack' ? target?.parentElement : target;
+  if (anchor === hoveredInk) return;
+  hideInkNames();
+  if (!anchor) return;
+  hoveredInk = anchor;
+
+  const markers = view === 'stack' ? [...anchor.children] : [anchor];
+  const bounds = stage.getBoundingClientRect();
+  const rect = anchor.getBoundingClientRect();
+  inkNames.dataset.view = view;
+  inkNames.style.left = '8px';
+  inkNames.style.top = '0px';
+  const labels = markers.map(marker => {
+    const person = people.find(person => person.name === marker.dataset.person);
+    const label = document.createElement('span');
+    label.className = 'ink-name';
+    const name = document.createElement('span');
+    name.textContent = person.name;
+    label.append(name);
+    label.style.setProperty('--person-color', person.color);
+    return label;
+  });
+  inkNames.replaceChildren(...labels);
+  const left = rect.left - bounds.left;
+  inkNames.style.left = `${Math.max(8, Math.min(left, bounds.width - inkNames.offsetWidth - 8))}px`;
+  inkNames.style.top = `${Math.max(2, rect.top - bounds.top - inkNames.offsetHeight + 4)}px`;
+
+  if (reduceMotion.matches) return;
+  const closed = view === 'rail' ? 'inset(0 96% 0 0)' : 'inset(94% 0 0 0)';
+  for (const [index, label] of labels.entries()) {
+    const delay = index * 52;
+    label.animate([
+      { clipPath: closed, opacity: .35 },
+      { clipPath: 'inset(0)', opacity: 1 },
+    ], { duration: 250, delay, fill: 'backwards', easing: 'ease-out' });
+    label.firstElementChild.animate([
+      { opacity: 0, filter: 'blur(3px)' },
+      { opacity: 1, filter: 'blur(0)' },
+    ], { duration: 160, delay: delay + 85, fill: 'backwards', easing: 'ease-out' });
+  }
+}
 
 const blink = caret.animate([
   { opacity: 1, offset: 0 },
@@ -114,13 +174,30 @@ function mark(start, end) {
     draft = { person: active, ranges: [] };
     layers.push(draft);
   }
-  const ranges = [...draft.ranges, { start, end }].sort((a, b) => a.start - b.start);
-  draft.ranges = [];
-  for (const range of ranges) {
-    const last = draft.ranges.at(-1);
+  draft.ranges = mergeRanges([...draft.ranges, { start, end }]);
+}
+
+function mergeRanges(ranges) {
+  const merged = [];
+  for (const range of ranges.sort((a, b) => a.start - b.start)) {
+    const last = merged.at(-1);
     if (last && range.start <= last.end) last.end = Math.max(last.end, range.end);
-    else draft.ranges.push(range);
+    else merged.push({ ...range });
   }
+  return merged;
+}
+
+function uncoveredRanges({ start, end }, covered) {
+  const visible = [];
+  for (const range of covered) {
+    if (range.end <= start) continue;
+    if (range.start >= end) break;
+    if (range.start > start) visible.push({ start, end: range.start });
+    start = Math.max(start, range.end);
+    if (start >= end) break;
+  }
+  if (start < end) visible.push({ start, end });
+  return visible;
 }
 
 function recordEdit({ value: old, start, end }, value) {
@@ -157,39 +234,87 @@ function recordEdit({ value: old, start, end }, value) {
 
 function renderInk(pulseLayer, passing = false) {
   if (!layers.length) return;
+  hideInkNames();
   const bounds = stage.getBoundingClientRect();
   const range = document.createRange();
   const fragment = document.createDocumentFragment();
   const pulses = [];
   const badges = [];
   const rowBadges = new Map();
+  const railRows = new Map();
+  const view = inkView.value;
+  const visibleByLayer = new Map();
+  let covered = [];
+  for (const layer of layers.toReversed()) {
+    visibleByLayer.set(layer, layer.ranges.flatMap(span => uncoveredRanges(span, covered)));
+    covered = mergeRanges([...covered, ...layer.ranges]);
+  }
+
   for (const layer of layers) {
-    let needsBadge = true;
-    for (const { start, end } of layer.ranges) {
+    for (const { start, end } of view === 'wash' ? layer.ranges : []) {
+      range.setStart(mirror.firstChild, start);
+      range.setEnd(mirror.firstChild, end);
+      const rect = Array.from(range.getClientRects()).find(rect => rect.width);
+      if (!rect) continue;
+      const badge = avatar(layer.person);
+      const row = Math.round(rect.top - bounds.top - editor.scrollTop);
+      const slot = rowBadges.get(row) ?? 0;
+      badge.style.left = `${rect.left - bounds.left - editor.scrollLeft + slot * 20}px`;
+      badge.style.top = `${row - 16}px`;
+      rowBadges.set(row, slot + 1);
+      badges.push(badge);
+      break;
+    }
+    const spans = view === 'stack' ? layer.ranges : visibleByLayer.get(layer);
+    for (const { start, end } of spans) {
       range.setStart(mirror.firstChild, start);
       range.setEnd(mirror.firstChild, end);
       for (const rect of range.getClientRects()) {
         if (!rect.width) continue;
+        if (view !== 'wash') {
+          const row = Math.round(rect.top - bounds.top - editor.scrollTop);
+          if (!railRows.has(row)) railRows.set(row, { height: rect.height, segments: [] });
+          railRows.get(row).segments.push({ x: rect.left, width: rect.width, person: layer.person });
+          continue;
+        }
         const wash = document.createElement('div');
         wash.className = 'wash';
+        wash.dataset.person = layer.person.name;
         wash.style.setProperty('--wash-color', layer.person.color);
-        wash.style.left = `${rect.left - bounds.left - editor.scrollLeft - 3}px`;
+        wash.style.left = `${rect.left - bounds.left - editor.scrollLeft}px`;
         wash.style.top = `${rect.top - bounds.top - editor.scrollTop}px`;
-        wash.style.width = `${rect.width + 12}px`;
+        wash.style.width = `${rect.width}px`;
         wash.style.height = `${rect.height}px`;
         fragment.append(wash);
-        if (needsBadge) {
-          const badge = avatar(layer.person);
-          const row = Math.round(rect.top - bounds.top - editor.scrollTop);
-          const slot = rowBadges.get(row) ?? 0;
-          badge.style.left = `${rect.left - bounds.left - editor.scrollLeft + slot * 20}px`;
-          badge.style.top = `${row - 16}px`;
-          rowBadges.set(row, slot + 1);
-          badges.push(badge);
-          needsBadge = false;
-        }
         if (layer === pulseLayer) pulses.push(wash);
       }
+    }
+  }
+  if (view !== 'wash') {
+    const left = parseFloat(getComputedStyle(editor).paddingLeft) - (view === 'stack' ? 77 : 17);
+    for (const [top, { height, segments }] of railRows) {
+      const line = document.createElement('div');
+      line.className = view === 'stack' ? 'stack-line' : 'rail-line';
+      line.style.left = `${left}px`;
+      line.style.top = `${top}px`;
+      line.style.height = `${height}px`;
+      const ordered = view === 'stack'
+        ? [...new Map(segments.map(segment => [segment.person, segment])).values()]
+        : segments.sort((a, b) => a.x - b.x);
+      for (const [index, { width, person }] of ordered.entries()) {
+        const segment = document.createElement('div');
+        if (view === 'stack') {
+          segment.className = 'stack-sheet';
+          segment.style.left = `${index * 9}px`;
+        } else {
+          segment.className = 'rail-segment';
+          segment.style.flexGrow = width;
+        }
+        segment.dataset.person = person.name;
+        segment.style.setProperty('--wash-color', person.color);
+        line.append(segment);
+      }
+      fragment.append(line);
     }
   }
   ink.replaceChildren(fragment, ...badges);
@@ -197,9 +322,9 @@ function renderInk(pulseLayer, passing = false) {
   const opacity = opacityControl.valueAsNumber / 100;
   for (const wash of pulses) {
     wash.animate([
-      { opacity: passing ? 0 : opacity * .7, filter: 'blur(3px)', transform: passing ? 'scaleX(.8)' : 'scaleX(1)' },
-      { opacity: Math.min(1, opacity + .25), filter: 'blur(7px)', transform: 'scaleX(1.04)', offset: .42 },
-      { opacity, filter: 'blur(5px)', transform: 'scaleX(1)' },
+      { opacity: passing ? 0 : opacity * .7, filter: 'blur(2px)', transform: passing ? 'scaleX(.8)' : 'scaleX(1)' },
+      { opacity: Math.min(1, opacity + .12), filter: 'blur(4px)', transform: 'scaleX(1)', offset: .42 },
+      { opacity, filter: 'blur(3px)', transform: 'scaleX(1)' },
     ], { duration: passing ? 760 : 320, easing: 'ease-out' });
   }
 }
@@ -238,7 +363,11 @@ function scheduleCaret() {
   if (pendingFrame) return;
   pendingFrame = requestAnimationFrame(() => {
     pendingFrame = 0;
-    updateCaret();
+    const previous = point;
+    const current = updateCaret();
+    if (!caret.hidden && previous && (current.x !== previous.x || current.y !== previous.y)) {
+      recordReplayFrame(stage, current, active, 'move');
+    }
   });
 }
 
@@ -250,7 +379,7 @@ function trace(from, { x, y, duration, delay = 0, opacity, width = 0, target }) 
     layer.style.width = `${width}px`;
     layer.style.transformOrigin = x < 0 ? 'left center' : 'right center';
     layer.style.background = target
-      ? `linear-gradient(90deg, ${active.color}, color-mix(in srgb, ${active.color}, ${target.color}) 40%, color-mix(in srgb, ${target.color} 60%, transparent) 72%, transparent)`
+      ? `linear-gradient(90deg, ${active.color}, transparent 50%, color-mix(in srgb, ${target.color} 75%, transparent) 64%, transparent)`
       : `linear-gradient(to ${x < 0 ? 'left' : 'right'}, transparent, ${active.color})`;
   }
   effects.insertBefore(layer, caret);
@@ -275,17 +404,7 @@ function pass() {
   if (!reduceMotion.matches) {
     const distance = Math.max(28, Math.min(180, stage.clientWidth - from.x - 8));
     const rise = from.y < 40 ? 20 : -26;
-    for (let layer = 0; layer < 3; layer++) {
-      trace(from, {
-        x: distance * (1 - layer * .1),
-        y: rise * (1 - layer * .1),
-        duration: 950 - layer * 75,
-        delay: layer * 45,
-        opacity: .48 - layer * .09,
-        width: 44 + layer * 18,
-        target: next,
-      });
-    }
+    trace(from, { x: distance, y: rise, duration: 950, opacity: .66, width: 108, target: next });
   }
   announcement.textContent = `${active.name} passed to ${next.name}`;
   active = next;
@@ -293,6 +412,7 @@ function pass() {
   document.documentElement.style.setProperty('--accent', active.color);
   recordTurn(active);
   updateRecipients();
+  recordReplayFrame(stage, from, active, 'pass');
 }
 
 editor.addEventListener('beforeinput', () => {
@@ -306,6 +426,7 @@ editor.addEventListener('input', () => {
   const previous = point;
   const current = updateCaret();
   renderInk(draft);
+  if (!composing) recordReplayFrame(stage, current, active, 'edit');
   wakeCaret();
   if (reduceMotion.matches || composing || !previous || caret.hidden) return;
 
@@ -332,7 +453,8 @@ editor.addEventListener('compositionend', () => {
   composing = false;
   editor.classList.remove('native-caret');
   wakeCaret();
-  scheduleCaret();
+  const current = updateCaret();
+  recordReplayFrame(stage, current, active, 'edit');
 });
 editor.addEventListener('keydown', event => {
   if (event.isComposing || composing) return;
@@ -358,7 +480,15 @@ const alignInk = () => {
 };
 new ResizeObserver(alignInk).observe(stage);
 editor.addEventListener('scroll', alignInk);
+inkView.addEventListener('change', () => {
+  stage.classList.toggle('soft-stack', inkView.value === 'stack');
+  alignInk();
+});
 passButton.addEventListener('click', pass);
+stage.addEventListener('pointermove', showInkNames);
+stage.addEventListener('pointerleave', hideInkNames);
+stage.addEventListener('pointerdown', hideInkNames);
+stage.addEventListener('pointerup', showInkNames);
 
 if (matchMedia('(pointer: fine)').matches) {
   editor.setSelectionRange(0, 0);

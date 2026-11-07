@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code</title>
   <link rel="stylesheet" href="style.css">
+  <script src="replay.js" defer></script>
   <script src="editor.js" defer></script>
 </head>
 <body>
@@ -13,8 +14,10 @@
     <div id="ink" aria-hidden="true"></div>
     <textarea id="text" aria-label="Edit text" aria-keyshortcuts="Alt+1 Alt+2 Alt+3 Alt+4 Alt+5 Meta+Enter Control+Enter" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
     <div id="effects" aria-hidden="true"><div id="caret" class="beam"></div></div>
+    <div id="ink-names" aria-hidden="true"></div>
     <ol id="handoffs" aria-label="Handoff history"></ol>
     <div id="controls">
+      <button id="open-replay" type="button">Replay</button>
       <button id="pass" type="button">Pass ↗</button>
       <button id="color-toggle" type="button" popovertarget="colors" aria-label="Choose next collaborator"></button>
     </div>
@@ -22,8 +25,30 @@
       <div id="next-label">Pass to</div>
       <div id="swatches" role="group" aria-label="Next collaborator"></div>
       <label id="opacity-control">Opacity <input id="opacity" type="range" min="10" max="70" value="40"></label>
+      <label id="view-control">View
+        <select id="ink-view">
+          <option value="wash">Text gradient</option>
+          <option value="rail">Left rail</option>
+          <option value="stack">Soft stack</option>
+        </select>
+      </label>
     </div>
   </main>
+  <dialog id="replay-dialog" aria-label="Edit replay">
+    <canvas id="replay-canvas" width="1280" height="720" aria-label="Abstract playback of edits"></canvas>
+    <div id="replay-controls">
+      <label>Music <input id="replay-music" type="file" accept=".mp3,audio/mpeg"></label>
+      <label><input id="replay-words" type="checkbox"> Show original text</label>
+      <label>Text size <input id="replay-font-size" type="range" min="50" max="220" value="100"></label>
+      <label>Color intensity <input id="replay-ink-strength" type="range" min="0" max="150" value="100"></label>
+      <label>Color size <input id="replay-ink-size" type="range" min="35" max="200" value="100"></label>
+      <button id="replay-play" type="button">Play</button>
+      <button id="replay-stop" type="button" disabled>Stop</button>
+      <button id="replay-export" type="button">Export video</button>
+      <button id="replay-close" type="button">Back to editor</button>
+      <span id="replay-status" role="status"></span>
+    </div>
+  </dialog>
   <span id="announcement" class="sr-only" role="status"></span>
 </body>
 </html>
