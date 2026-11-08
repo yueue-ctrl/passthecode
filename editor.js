@@ -419,14 +419,18 @@ editor.addEventListener('beforeinput', () => {
   beforeEdit = { value: editor.value, start: editor.selectionStart, end: editor.selectionEnd };
   updateCaret();
 });
-editor.addEventListener('input', () => {
+editor.addEventListener('input', event => {
   const edit = beforeEdit ?? { value: mirroredValue, start: editor.selectionStart, end: editor.selectionEnd };
   beforeEdit = undefined;
   recordEdit(edit, editor.value);
   const previous = point;
   const current = updateCaret();
   renderInk(draft);
-  if (!composing) recordReplayFrame(stage, current, active, 'edit');
+  if (event.inputType === 'historyUndo' || event.inputType === 'historyRedo') {
+    restoreReplayEdit(editor.value, event.inputType);
+  } else if (!composing) {
+    recordReplayFrame(stage, current, active, 'edit');
+  }
   wakeCaret();
   if (reduceMotion.matches || composing || !previous || caret.hidden) return;
 

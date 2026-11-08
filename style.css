@@ -166,9 +166,12 @@ body { margin: 0; background: #fff; color: var(--ink); }
   border: 0;
   background: white;
 }
-#replay-dialog[open] { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
-#replay-canvas { width: 100%; height: 100%; object-fit: contain; }
+#replay-dialog { overflow: hidden; }
+#replay-canvas { display: block; }
 #replay-controls {
+  position: absolute;
+  inset: auto 0 0;
+  background: rgb(255 255 255 / 94%);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
