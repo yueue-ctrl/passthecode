@@ -230,6 +230,7 @@ function recordEdit({ value: old, start, end }, value) {
     }).filter(range => range.start < range.end);
   }
   mark(left, newRight);
+  return { left, oldRight, newRight };
 }
 
 function renderInk(pulseLayer, passing = false) {
@@ -322,9 +323,9 @@ function renderInk(pulseLayer, passing = false) {
   const opacity = opacityControl.valueAsNumber / 100;
   for (const wash of pulses) {
     wash.animate([
-      { opacity: passing ? 0 : opacity * .7, filter: 'blur(2px)', transform: passing ? 'scaleX(.8)' : 'scaleX(1)' },
-      { opacity: Math.min(1, opacity + .12), filter: 'blur(4px)', transform: 'scaleX(1)', offset: .42 },
-      { opacity, filter: 'blur(3px)', transform: 'scaleX(1)' },
+      { opacity: passing ? 0 : opacity * .7, filter: 'blur(4px)', transform: passing ? 'scaleX(.8)' : 'scaleX(1)' },
+      { opacity: Math.min(1, opacity + .16), filter: 'blur(9px)', transform: 'scaleX(1)', offset: .42 },
+      { opacity, filter: 'blur(var(--wash-blur))', transform: 'scaleX(1)' },
     ], { duration: passing ? 760 : 320, easing: 'ease-out' });
   }
 }
@@ -387,8 +388,8 @@ function trace(from, { x, y, duration, delay = 0, opacity, width = 0, target }) 
   const transform = (dx, dy, scale) => `translate(${left + dx}px, ${from.y + dy}px) scale(${scale})`;
   const motion = layer.animate([
     { transform: transform(0, 0, 1), opacity: 0, filter: 'blur(.3px)' },
-    { transform: transform(x * .22, y * .22, 1), opacity, filter: 'blur(.7px)', offset: .16 },
-    { transform: transform(x, y, width ? 1.65 : 1.14), opacity: 0, filter: `blur(${width ? 9 : 3}px)` },
+    { transform: transform(x * .22, y * .22, 1), opacity, filter: `blur(${width ? 4 : 1.2}px)`, offset: .16 },
+    { transform: transform(x, y, width ? 1.65 : 1.14), opacity: 0, filter: `blur(${width ? 18 : 5}px)` },
   ], { duration, delay, fill: 'both', easing: 'cubic-bezier(.19,.6,.35,1)' });
   motion.onfinish = () => layer.remove();
 }
@@ -422,14 +423,15 @@ editor.addEventListener('beforeinput', () => {
 editor.addEventListener('input', event => {
   const edit = beforeEdit ?? { value: mirroredValue, start: editor.selectionStart, end: editor.selectionEnd };
   beforeEdit = undefined;
-  recordEdit(edit, editor.value);
+  const change = recordEdit(edit, editor.value);
   const previous = point;
   const current = updateCaret();
   renderInk(draft);
   if (event.inputType === 'historyUndo' || event.inputType === 'historyRedo') {
     restoreReplayEdit(editor.value, event.inputType);
   } else if (!composing) {
-    recordReplayFrame(stage, current, active, 'edit');
+    const type = event.inputType.startsWith('delete') ? 'delete' : 'edit';
+    recordReplayFrame(stage, current, active, type, edit.value === replayEditValue() ? change : undefined);
   }
   wakeCaret();
   if (reduceMotion.matches || composing || !previous || caret.hidden) return;

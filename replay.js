@@ -3,11 +3,16 @@ const replayCanvas = document.querySelector('#replay-canvas');
 const replayDrawing = replayCanvas.getContext('2d');
 const replayMusic = document.querySelector('#replay-music');
 const replayWords = document.querySelector('#replay-words');
+const editorTextColor = document.querySelector('#editor-text-color');
+const replayTextColor = document.querySelector('#replay-text-color');
+const editorBackground = document.querySelector('#editor-background');
+const replayBackground = document.querySelector('#replay-background');
 const replayFullLayout = document.querySelector('#replay-full-layout');
 const replayFontSize = document.querySelector('#replay-font-size');
 const replayInkStrength = document.querySelector('#replay-ink-strength');
 const replayInkSize = document.querySelector('#replay-ink-size');
-const replayAppearance = [replayWords, replayFullLayout, replayFontSize, replayInkStrength, replayInkSize];
+const replayAppearance = [replayWords, replayFullLayout, replayFontSize, replayInkStrength, replayInkSize, replayTextColor, replayBackground];
+const replayGraphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 const replayPlay = document.querySelector('#replay-play');
 const replayStop = document.querySelector('#replay-stop');
 const replayExport = document.querySelector('#replay-export');
@@ -15,8 +20,9 @@ const replayStatus = document.querySelector('#replay-status');
 
 const replayFrames = [];
 const recordedReplayFrames = [];
-const replayEdits = [{ value: '' }];
+const replayEdits = [{ value: '', characters: [], added: [], deleted: [] }];
 let replayEditIndex = 0;
+let replayCharacterId = 0;
 let soundtrack;
 let audioContext;
 let musicRequest = 0;
@@ -29,8 +35,8 @@ function captureReplayWords(stage, bounds) {
   const style = getComputedStyle(field);
   const range = document.createRange();
   const words = [];
-  const save = (text, rect, token) => words.push({
-    text, offset: token.index, whole: token[0],
+  const save = (text, rect, token, start = token.index) => words.push({
+    text, start, offset: token.index, whole: token[0],
     x: (rect.left - bounds.left - field.scrollLeft) / bounds.width,
     y: (rect.top - bounds.top - field.scrollTop + rect.height / 2) / bounds.height,
     width: rect.width / bounds.width,
@@ -48,27 +54,51 @@ function captureReplayWords(stage, bounds) {
       range.setStart(node, offset);
       offset += letter.length;
       range.setEnd(node, offset);
-      save(letter, range.getBoundingClientRect(), match);
+      save(letter, range.getBoundingClientRect(), match, offset - letter.length);
     }
   }
   const size = parseFloat(style.fontSize);
   return { words, size, family: style.fontFamily };
 }
 
-function recordReplayFrame(stage, point, person, type) {
+function replayEditValue() {
+  return replayEdits[replayEditIndex].value;
+}
+
+function recordReplayFrame(stage, point, person, type, change) {
   const now = performance.now();
   const bounds = stage.getBoundingClientRect();
   const previous = recordedReplayFrames.at(-1);
   const field = stage.querySelector('#text');
-  if (type === 'edit') {
-    if (field.value === replayEdits[replayEditIndex].value) return;
-    replayEdits.splice(replayEditIndex + 1, Infinity, { value: field.value });
+  if (type === 'edit' || type === 'delete') {
+    const prior = replayEdits[replayEditIndex];
+    const value = field.value;
+    if (value === prior.value) return;
+    if (!change) {
+      let left = 0;
+      let oldRight = prior.value.length;
+      let newRight = value.length;
+      while (left < Math.min(oldRight, newRight) && value[left] === prior.value[left]) left++;
+      while (oldRight > left && newRight > left && prior.value[oldRight - 1] === value[newRight - 1]) {
+        oldRight--;
+        newRight--;
+      }
+      change = { left, oldRight, newRight };
+    }
+    const { left, oldRight, newRight } = change;
+    const added = Array.from({ length: newRight - left }, () => ++replayCharacterId);
+    const deleted = type === 'delete' ? prior.characters.slice(left, oldRight) : [];
+    const characters = [...prior.characters.slice(0, left), ...added, ...prior.characters.slice(oldRight)];
+    replayEdits.splice(replayEditIndex + 1, Infinity, { value, characters, added, deleted });
     replayEditIndex++;
+    if (type === 'delete') return;
   }
   const edit = replayEdits[replayEditIndex];
   const ink = stage.querySelector('#ink');
-  const opacity = parseFloat(getComputedStyle(ink).getPropertyValue('--ink-opacity')) || .4;
+  const inkStyle = getComputedStyle(ink);
+  const opacity = parseFloat(inkStyle.getPropertyValue('--ink-opacity')) || .55;
   const view = stage.querySelector('#ink-view').value;
+  const blur = inkStyle.getPropertyValue(view === 'stack' ? '--stack-blur' : '--wash-blur').trim() || '6px';
   const viewport = {
     width: bounds.width, height: bounds.height, scrollX: field.scrollLeft, scrollY: field.scrollTop,
   };
@@ -87,11 +117,10 @@ function recordReplayFrame(stage, point, person, type) {
         width: wash ? parseFloat(element.style.width) : rect.width,
         height: wash ? parseFloat(element.style.height) : rect.height,
         color: element.style.getPropertyValue('--wash-color'),
-        background: view === 'rail' ? getComputedStyle(element).backgroundColor : undefined,
       };
     });
   recordedReplayFrames.push({
-    type, edit, person, color: person.color, shapes, viewport, view, inkOpacity: opacity, time: now,
+    type, edit, person, color: person.color, shapes, viewport, view, blur, inkOpacity: opacity, time: now,
     lettering: sameLayout ? previous.lettering : captureReplayWords(stage, bounds),
     x: point.x / bounds.width,
     y: point.y / bounds.height,
@@ -107,12 +136,55 @@ function restoreReplayEdit(value, inputType) {
   }
 }
 
+function compactReplayScene(frame, deleted) {
+  const removed = [];
+  const words = frame.lettering.words.flatMap(word => {
+    const ids = frame.edit.characters.slice(word.start, word.start + word.text.length);
+    if (!ids.some(id => deleted.has(id))) return [word];
+    const fragments = [];
+    let offset = 0;
+    for (const character of word.text) {
+      const x = word.x + word.width * offset / word.text.length;
+      const width = word.width * character.length / word.text.length;
+      if (deleted.has(ids[offset])) removed.push({ x, y: word.y, width });
+      else fragments.push({ ...word, text: character, x, width });
+      offset += character.length;
+    }
+    const whole = fragments.map(fragment => fragment.text).join('');
+    return fragments.map(fragment => ({ ...fragment, whole }));
+  });
+  if (!removed.length) return frame;
+
+  const { width, height } = frame.viewport;
+  const compactX = (x, y) => x - removed.reduce((shift, gap) => {
+    if (Math.abs(gap.y - y) * height > 8) return shift;
+    return shift + Math.max(0, Math.min(gap.width, x - gap.x));
+  }, 0);
+  const shapes = frame.view === 'wash' ? frame.shapes.flatMap(shape => {
+    const y = (shape.y + shape.height / 2) / height;
+    const left = compactX(shape.x / width, y) * width;
+    const right = compactX((shape.x + shape.width) / width, y) * width;
+    return right - left > .5 ? [{ ...shape, x: left, width: right - left }] : [];
+  }) : frame.shapes;
+  return {
+    ...frame,
+    x: compactX(frame.x, frame.y + 18 / height),
+    shapes,
+    lettering: {
+      ...frame.lettering,
+      words: words.map(word => ({ ...word, x: compactX(word.x, word.y) })),
+    },
+  };
+}
+
 function collectReplayFrames() {
   const activeEdits = new Set(replayEdits.slice(0, replayEditIndex + 1));
+  const deleted = new Set([...activeEdits].flatMap(edit => edit.deleted));
   replayFrames.length = 0;
   for (const frame of recordedReplayFrames) {
-    if (activeEdits.has(frame.edit)) {
-      replayFrames.push(frame);
+    const erased = frame.edit.added.length && frame.edit.added.every(id => deleted.has(id));
+    if (activeEdits.has(frame.edit) && !erased) {
+      replayFrames.push(deleted.size ? compactReplayScene(frame, deleted) : frame);
     } else if (frame.type === 'pass') {
       // Keep the handoff, but use the last surviving scene instead of the undone text.
       const scene = replayFrames.at(-1) ?? {
@@ -168,7 +240,8 @@ function makeReplayTimeline() {
 
 function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordIndex = index, intro = 1) {
   const ctx = replayDrawing;
-  ctx.fillStyle = 'white';
+  const background = replayBackground.value;
+  ctx.fillStyle = background;
   ctx.fillRect(0, 0, replayCanvas.width, replayCanvas.height);
   if (!frame) return;
   const { width, height } = frame.viewport;
@@ -187,17 +260,17 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
     const top = shape.y + shape.height * (1 - inkScale) / 2;
     const wash = frame.view === 'wash';
     ctx.globalAlpha = Math.min(1, (wash ? frame.inkOpacity : 1) * inkStrength);
-    ctx.filter = wash ? 'blur(3px)' : frame.view === 'stack' ? 'blur(2.5px)' : 'none';
-    if (shape.background) {
-      ctx.fillStyle = shape.background;
+    ctx.filter = frame.view === 'rail' ? 'none' : `blur(${frame.blur})`;
+    if (frame.view === 'rail') {
+      ctx.fillStyle = `color-mix(in srgb, ${shape.color} ${30 + frame.inkOpacity * 60}%, ${background})`;
     } else {
       const tint = ctx.createLinearGradient(shape.x, 0, shape.x + span, 0);
       if (wash) {
         tint.addColorStop(0, shape.color);
-        tint.addColorStop(.72, `${shape.color}3d`);
+        tint.addColorStop(.68, `${shape.color}61`);
       } else {
         const strength = 38 + frame.inkOpacity * 60;
-        tint.addColorStop(.12, `color-mix(in srgb, ${shape.color} ${strength}%, white)`);
+        tint.addColorStop(.12, `color-mix(in srgb, ${shape.color} ${strength}%, ${background})`);
       }
       tint.addColorStop(1, `${shape.color}00`);
       ctx.fillStyle = tint;
@@ -222,7 +295,7 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
     glow.addColorStop(.36, `${frame.color}86`);
     glow.addColorStop(1, `${frame.color}00`);
     ctx.filter = 'none';
-    ctx.globalAlpha = impact * .46 * intro;
+    ctx.globalAlpha = impact * .62 * intro;
     ctx.fillStyle = glow;
     ctx.fillRect(x - reach, y + 18 - reach, reach * 2, reach * 2);
   }
@@ -241,7 +314,7 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
     tail.addColorStop(1, `${frame.color}00`);
     ctx.fillStyle = tail;
     ctx.globalAlpha = Math.min(1, progress * 12) * (1 - progress) * .78 * intro;
-    ctx.filter = `blur(${2 + progress * 9}px)`;
+    ctx.filter = `blur(${5 + progress * 17}px)`;
     ctx.fillRect(from - 35, y, 80 + progress * 15, 36);
   }
 
@@ -286,24 +359,33 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
       const duration = wordWindow * (count > 1 ? .64 : 1);
       const progress = (wordAge - delay) / duration;
       if (progress > 0 && progress < 1) {
-        reveals.set(offsets[(first + slot) % offsets.length], Math.min(1, progress / .2, (1 - progress) / .45));
+        const offset = offsets[(first + slot) % offsets.length];
+        const length = [...replayGraphemes.segment(tokens.get(offset))].length;
+        reveals.set(offset, {
+          remaining: Math.min(length, 1 + Math.floor(length * progress / .58)),
+          opacity: Math.min(1, progress / .1, (1 - progress) / .34),
+        });
       }
     }
     const scale = replayFontSize.valueAsNumber / 100;
     ctx.font = `${wordFrame.lettering.size * scale}px ${wordFrame.lettering.family}`;
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#171719';
+    ctx.fillStyle = replayTextColor.value;
     const rowStarts = new Map();
     for (const word of wordFrame.lettering.words) {
       if (word.width <= 0) continue;
       const row = Math.round(word.y * height);
       if (!rowStarts.has(row)) rowStarts.set(row, word.x);
-      if (!reveals.has(word.offset)) continue;
+      const reveal = reveals.get(word.offset);
+      if (!reveal?.remaining) continue;
       const start = rowStarts.get(row);
-      ctx.globalAlpha = reveals.get(word.offset);
+      ctx.globalAlpha = reveal.opacity;
+      const letters = [...replayGraphemes.segment(word.text)];
+      const visible = letters.slice(0, reveal.remaining).map(letter => letter.segment).join('');
+      reveal.remaining -= Math.min(reveal.remaining, letters.length);
       const wordViewport = wordFrame.viewport;
-      ctx.fillText(word.text, (start + (word.x - start) * scale) * wordViewport.width,
-        word.y * wordViewport.height, word.width * wordViewport.width * scale);
+      ctx.fillText(visible, (start + (word.x - start) * scale) * wordViewport.width,
+        word.y * wordViewport.height, word.width * wordViewport.width * scale * visible.length / word.text.length);
     }
   }
   const tagOpacity = handoff ? Math.max(0, 1 - age / .85) : hit * .9;
@@ -468,6 +550,18 @@ document.querySelector('#open-replay').addEventListener('click', () => {
 replayPlay.addEventListener('click', () => startReplay(false));
 replayExport.addEventListener('click', () => startReplay(true));
 replayStop.addEventListener('click', () => stopReplay());
+for (const [editorPicker, replayPicker, property] of [
+  [editorTextColor, replayTextColor, '--text-color'],
+  [editorBackground, replayBackground, '--paper-color'],
+]) {
+  for (const picker of [editorPicker, replayPicker]) {
+    picker.addEventListener('input', () => {
+      editorPicker.value = picker.value;
+      replayPicker.value = picker.value;
+      document.documentElement.style.setProperty(property, picker.value);
+    });
+  }
+}
 for (const control of replayAppearance) {
   control.addEventListener('input', () => {
     if (!playback) drawReplay(replayFrames.at(-1), replayFrames.at(-2), .12, .12, replayFrames.length - 1);
