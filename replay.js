@@ -410,6 +410,7 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
 }
 
 function updateReplayControls() {
+  document.body.classList.toggle('cursor-loading', musicLoading);
   const unavailable = !replayFrames.length || musicLoading || Boolean(playback);
   replayPlay.disabled = unavailable;
   replayExport.disabled = unavailable || !replayCanvas.captureStream || typeof MediaRecorder === 'undefined';

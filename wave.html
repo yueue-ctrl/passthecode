@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pass the Code — Type waves</title>
+  <link rel="stylesheet" href="wave.css?v=spacing">
+  <script src="wave.js?v=spacing" defer></script>
+</head>
+<body>
+  <main class="workspace">
+    <section class="preview" aria-label="Music responsive variable typography">
+      <div class="poster" id="poster">
+        <div id="bands" aria-hidden="true"></div>
+        <article id="composition"></article>
+      </div>
+      <div class="preview-caption"><span>TYPE WAVES / INTER VARIABLE</span><span id="mode" role="status">Demo wave</span></div>
+    </section>
+    <aside class="settings" aria-label="Composition controls">
+      <a class="back" href="./">↖ Back to editor</a>
+      <h1>Color has weight.</h1>
+      <p class="description">A rhythm in color. A rhythm in type.</p>
+      <label class="text-label" for="copy">Text</label>
+      <textarea id="copy" spellcheck="false">pass the code
+
+Creative Coding Relay
+
+JOIN US
+
+10:00 AM – 6:00 PM
+Saturday, April 17, 2027
+
+808 Commonwealth Ave.
+Boston, MA</textarea>
+      <div class="music-row">
+        <label class="file-label">Choose music <input id="music" type="file" accept="audio/*,.mp3"></label>
+        <button id="play" type="button">Pause demo</button>
+      </div>
+      <p id="track-name">No track selected · generated wave</p>
+      <label class="range-label" for="intensity"><span>Response</span><output id="intensity-value">100%</output></label>
+      <input id="intensity" type="range" min="20" max="180" value="100">
+      <label class="range-label" for="spread"><span>Gradient reach</span><output id="spread-value">100%</output></label>
+      <input id="spread" type="range" min="40" max="180" value="100">
+      <label class="range-label" for="size"><span>Type size</span><output id="size-value">100%</output></label>
+      <input id="size" type="range" min="65" max="130" value="100">
+      <label class="range-label" for="tracking"><span>Letter spacing</span><output id="tracking-value">0.00 em</output></label>
+      <input id="tracking" type="range" min="-3" max="20" value="0" step="1">
+      <label class="range-label" for="word-gap"><span>Word spacing</span><output id="word-gap-value">0.00 em</output></label>
+      <input id="word-gap" type="range" min="-8" max="60" value="0" step="1">
+      <div class="legend"><div class="legend-gradient"></div><span>LIGHT / 100</span><span>HEAVY / 900</span></div>
+      <p class="note">Every word and every space owns a gradient. Its measured width sets the color boundary. Weight follows the color from heavy to light.</p>
+    </aside>
+  </main>
+</body>
+</html>

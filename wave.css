@@ -1,0 +1,52 @@
+@font-face {
+  font-family: Inter Wave;
+  src: url("./assets/InterVariable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root { color-scheme: light; font-family: "Inter Wave", sans-serif; color: #111; background: #f5f5f2; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 100dvh; }
+.preview { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; min-width: 0; }
+.poster { position: relative; isolation: isolate; background: #fff; width: min(100%, 670px); min-height: 760px; padding: 25px 24px; overflow: hidden; --type-scale: 1; }
+#bands { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.color-band { position: absolute; background: linear-gradient(90deg, var(--color), color-mix(in srgb, var(--color) 35%, transparent) var(--reach, 48%), transparent); filter: blur(3px); will-change: opacity; }
+#composition { position: relative; display: flex; flex-direction: column; gap: 32px; }
+.copy-block { margin: 0; font-size: calc(27px * var(--type-scale)); line-height: 1.13; letter-spacing: calc(var(--base-tracking, -.055em) + var(--tracking, 0em)); word-spacing: var(--word-gap, 0em); font-weight: 400; white-space: pre-wrap; overflow-wrap: anywhere; }
+.copy-block:first-child { font-size: calc(clamp(42px, 5.5vw, 79px) * var(--type-scale)); line-height: .98; }
+.copy-block:nth-child(3) { font-size: calc(clamp(65px, 9vw, 130px) * var(--type-scale)); max-width: 4ch; line-height: .85; margin: 15px 0; --base-tracking: -.065em; }
+.copy-block:nth-last-child(-n+2):not(:first-child):not(:nth-child(3)) { font-size: calc(21px * var(--type-scale)); --base-tracking: -.035em; }
+.wave-letter { font-variation-settings: "wght" var(--weight, 400); font-synthesis: none; }
+.preview-caption { width: min(100%, 670px); display: flex; justify-content: space-between; gap: 15px; margin-top: 13px; font: 9px ui-monospace, monospace; letter-spacing: .07em; color: #68685e; }
+.settings { padding: 30px 25px; border-left: 1px solid #e3e3df; background: white; }
+.back { font: 10px ui-monospace, monospace; color: #69695f; text-decoration: none; }
+h1 { margin: 37px 0 8px; font-size: 29px; font-weight: 550; letter-spacing: -.065em; }
+.description { font-size: 12px; color: #707068; margin: 0 0 32px; }
+.text-label, .range-label { font-size: 11px; display: flex; justify-content: space-between; margin: 22px 0 10px; }
+textarea { display: block; resize: vertical; width: 100%; min-height: 228px; padding: 12px; border: 1px solid #e3e3df; border-radius: 6px; font: 12px/1.55 "Inter Wave", sans-serif; background: #fafaf8; }
+.music-row { display: flex; gap: 7px; margin-top: 20px; }
+.file-label, button { border: 1px solid #deded8; border-radius: 5px; background: white; padding: 9px; font: 10px "Inter Wave", sans-serif; cursor: pointer; }
+.file-label { position: relative; overflow: hidden; }
+.file-label input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+button { flex: 1; background: #191916; color: white; }
+button:disabled { opacity: .4; cursor: default; }
+#track-name { overflow-wrap: anywhere; color: #707068; font-size: 10px; line-height: 1.5; min-height: 30px; }
+input[type="range"] { width: 100%; accent-color: #1d1d18; }
+.legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px; margin-top: 30px; font: 8px ui-monospace, monospace; color: #707068; }
+.legend-gradient { width: 100%; height: 22px; background: linear-gradient(90deg, #00dff217, #00dff2); filter: blur(2px); }
+.note { margin-top: 26px; font-size: 11px; line-height: 1.65; color: #77776c; }
+:focus-visible { outline: 2px solid #1299ff; outline-offset: 3px; }
+@media (max-width: 850px) {
+  .workspace { grid-template-columns: minmax(0, 1fr) 260px; }
+  .preview { padding: 16px; }
+  .poster { min-height: 700px; padding: 22px 16px; }
+}
+@media (max-width: 620px) {
+  .workspace { grid-template-columns: 1fr; }
+  .settings { border-top: 1px solid #e3e3df; border-left: 0; }
+  .poster { min-height: 660px; }
+  .copy-block:first-child { font-size: calc(47px * var(--type-scale)); }
+  .copy-block:nth-child(3) { font-size: calc(104px * var(--type-scale)); }
+}

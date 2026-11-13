@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code</title>
-  <link rel="stylesheet" href="style.css?v=background-color">
-  <script src="replay.js?v=typed-words" defer></script>
+  <link rel="stylesheet" href="style.css?v=cursor-library">
+  <script src="replay.js?v=cursor-library" defer></script>
   <script src="editor.js?v=bloom" defer></script>
+  <script src="cursors.js?v=spectrum" defer></script>
 </head>
 <body>
   <main id="stage">
+    <button id="cursor-library-toggle" type="button" aria-expanded="false" aria-controls="cursor-library">Cursors <span aria-hidden="true">◧</span></button>
     <div id="mirror" aria-hidden="true"></div>
     <div id="ink" aria-hidden="true"></div>
     <textarea id="text" aria-label="Edit text" aria-keyshortcuts="Alt+1 Alt+2 Alt+3 Alt+4 Alt+5 Meta+Enter Control+Enter" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
@@ -17,6 +19,7 @@
     <div id="ink-names" aria-hidden="true"></div>
     <ol id="handoffs" aria-label="Handoff history"></ol>
     <div id="controls">
+      <a id="open-waves" href="wave.html">Type waves ↗</a>
       <button id="open-replay" type="button">Replay</button>
       <button id="pass" type="button">Pass ↗</button>
       <button id="color-toggle" type="button" popovertarget="colors" aria-label="Choose next collaborator"></button>
@@ -36,6 +39,21 @@
       </label>
     </div>
   </main>
+  <aside id="cursor-library" aria-label="Cursor library" hidden>
+    <header class="cursor-library-header">
+      <div><span class="cursor-eyebrow">PASS THE CODE / 01</span><h2>Cursor library</h2></div>
+      <button id="cursor-library-close" type="button" aria-label="Close cursor library">×</button>
+    </header>
+    <div id="cursor-palette" role="group" aria-label="Cursor gradient starting color"></div>
+    <label class="cursor-enable"><input id="cursor-enable" type="checkbox" checked> Use in editor</label>
+    <div id="cursor-grid" role="group" aria-label="Cursor styles"></div>
+    <div id="cursor-test" tabindex="0" aria-label="Try selected cursor">
+      <img id="cursor-test-image" alt="">
+      <span id="cursor-test-name">Normal</span>
+      <small>Move here to try</small>
+    </div>
+    <p class="cursor-note">Five colors in every cursor. Pass shifts the gradient’s starting color.</p>
+  </aside>
   <dialog id="replay-dialog" aria-label="Edit replay">
     <canvas id="replay-canvas" width="1280" height="720" aria-label="Abstract playback of edits"></canvas>
     <div id="replay-controls">
