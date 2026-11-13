@@ -24,7 +24,8 @@ const people = [
   { name: 'Noa', color: '#ff00c8' },
 ];
 
-let active = people[1];
+let active = people.find(person => person.color === localStorage.getItem('pass-cursor-color')) ?? people[1];
+document.documentElement.style.setProperty('--accent', active.color);
 let recipient;
 let point;
 let composing = false;
@@ -233,6 +234,49 @@ function recordEdit({ value: old, start, end }, value) {
   return { left, oldRight, newRight };
 }
 
+const typeLayer = document.querySelector('#type-layer');
+const typeGraphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+function typeTokens() {
+  return [...new Intl.Segmenter(undefined, { granularity: 'word' }).segment(editor.value)].map((part, index) => ({
+    start: part.index, end: part.index + part.segment.length, index,
+  }));
+}
+function renderType() {
+  const bounds = stage.getBoundingClientRect();
+  const size = parseFloat(getComputedStyle(editor).fontSize);
+  const fragment = document.createDocumentFragment();
+  const range = document.createRange();
+  for (const token of typeTokens()) {
+    for (const { segment, index } of typeGraphemes.segment(editor.value.slice(token.start, token.end))) {
+      if (/^\s+$/u.test(segment)) continue;
+      const offset = token.start + index;
+      range.setStart(mirror.firstChild, offset);
+      range.setEnd(mirror.firstChild, offset + segment.length);
+      const rect = range.getBoundingClientRect();
+      const position = index / Math.max(1, token.end - token.start - 1);
+      const weight = Math.round(150 + 700 * (1 - position));
+      const letter = document.createElement('span');
+      letter.className = 'editor-letter';
+      letter.textContent = segment;
+      letter.dataset.offset = offset;
+      letter.dataset.weight = weight;
+      letter.style.cssText = `left:${rect.left - bounds.left - editor.scrollLeft}px;top:${rect.top - bounds.top - editor.scrollTop}px;font-size:${size}px;line-height:${rect.height}px;--weight:${weight}`;
+      fragment.append(letter);
+    }
+  }
+  typeLayer.replaceChildren(fragment);
+  // Fit variable glyphs to the same advance boxes used by the native textarea.
+  for (const letter of typeLayer.children) {
+    const offset = Number(letter.dataset.offset);
+    range.setStart(mirror.firstChild, offset);
+    range.setEnd(mirror.firstChild, offset + letter.textContent.length);
+    const width = range.getBoundingClientRect().width;
+    letter.style.transformOrigin = 'left center';
+    letter.style.transform = `scaleX(${width / Math.max(.01, letter.offsetWidth)})`;
+  }
+  ink.style.setProperty('--wash-blur', `${size / 72 * 1.5}px`);
+}
+
 function renderInk(pulseLayer, passing = false) {
   if (!layers.length) return;
   hideInkNames();
@@ -266,7 +310,10 @@ function renderInk(pulseLayer, passing = false) {
       badges.push(badge);
       break;
     }
-    const spans = view === 'stack' ? layer.ranges : visibleByLayer.get(layer);
+    const visible = view === 'stack' ? layer.ranges : visibleByLayer.get(layer);
+    const spans = view !== 'wash' ? visible : visible.flatMap(span => typeTokens().map(token => ({
+      start: Math.max(span.start, token.start), end: Math.min(span.end, token.end),
+    })).filter(span => span.start < span.end));
     for (const { start, end } of spans) {
       range.setStart(mirror.firstChild, start);
       range.setEnd(mirror.firstChild, end);
@@ -323,8 +370,8 @@ function renderInk(pulseLayer, passing = false) {
   const opacity = opacityControl.valueAsNumber / 100;
   for (const wash of pulses) {
     wash.animate([
-      { opacity: passing ? 0 : opacity * .7, filter: 'blur(4px)', transform: passing ? 'scaleX(.8)' : 'scaleX(1)' },
-      { opacity: Math.min(1, opacity + .16), filter: 'blur(9px)', transform: 'scaleX(1)', offset: .42 },
+      { opacity: passing ? 0 : opacity * .7, filter: 'blur(1px)', transform: passing ? 'scaleX(.8)' : 'scaleX(1)' },
+      { opacity: Math.min(1, opacity + .16), filter: 'blur(2px)', transform: 'scaleX(1)', offset: .42 },
       { opacity, filter: 'blur(var(--wash-blur))', transform: 'scaleX(1)' },
     ], { duration: passing ? 760 : 320, easing: 'ease-out' });
   }
@@ -340,6 +387,7 @@ function updateCaret() {
     mirroredValue = value;
   }
 
+  renderType();
   const range = document.createRange();
   const usePrevious = (offset === value.length || value[offset] === '\n')
     && offset > 0 && value[offset - 1] !== '\n';
@@ -501,3 +549,5 @@ if (matchMedia('(pointer: fine)').matches) {
   editor.focus({ preventScroll: true });
 }
 updateCaret();
+
+document.fonts.ready.then(alignInk);

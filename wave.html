@@ -4,8 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code — Type waves</title>
-  <link rel="stylesheet" href="wave.css?v=spacing">
-  <script src="wave.js?v=spacing" defer></script>
+  <link rel="stylesheet" href="wave.css?v=original-alignment">
+  <script src="wave.js?v=original-alignment" defer></script>
+  <link rel="stylesheet" href="cursors.css?v=uniform-size">
+  <script src="cursors.js?v=uniform-size" defer></script>
 </head>
 <body>
   <main class="workspace">
@@ -14,7 +16,7 @@
         <div id="bands" aria-hidden="true"></div>
         <article id="composition"></article>
       </div>
-      <div class="preview-caption"><span>TYPE WAVES / INTER VARIABLE</span><span id="mode" role="status">Demo wave</span></div>
+      <span id="mode" class="wave-status" role="status"></span>
     </section>
     <aside class="settings" aria-label="Composition controls">
       <a class="back" href="./">↖ Back to editor</a>
@@ -23,30 +25,47 @@
       <label class="text-label" for="copy">Text</label>
       <textarea id="copy" spellcheck="false">pass the code
 
-Creative Coding Relay
+CREATIVE CODING RELAY
 
 JOIN US
 
 10:00 AM – 6:00 PM
-Saturday, April 17, 2027
+SAT, APRIL 17, 2027
 
-808 Commonwealth Ave.
-Boston, MA</textarea>
+808 COMMONWEALTH AVE.
+BOSTON, MA</textarea>
       <div class="music-row">
         <label class="file-label">Choose music <input id="music" type="file" accept="audio/*,.mp3"></label>
         <button id="play" type="button">Pause demo</button>
       </div>
       <p id="track-name">No track selected · generated wave</p>
+      <label class="range-label" for="color-mode">Color mode</label>
+      <select id="color-mode">
+        <option value="original">Original colors</option>
+        <option value="music" selected>Follow music</option>
+        <option value="seed">Seeded colors</option>
+      </select>
+      <div class="seed-row">
+        <label for="seed">Seed</label>
+        <input id="seed" type="number" min="0" max="4294967295" step="1" value="42">
+        <button id="refresh-seed" type="button">↻ Shuffle</button>
+      </div>
       <label class="range-label" for="intensity"><span>Response</span><output id="intensity-value">100%</output></label>
       <input id="intensity" type="range" min="20" max="180" value="100">
       <label class="range-label" for="spread"><span>Gradient reach</span><output id="spread-value">100%</output></label>
       <input id="spread" type="range" min="40" max="180" value="100">
+      <label class="range-label" for="blur"><span>Gradient blur · relative to type</span><output id="blur-value">1.5</output></label>
+      <input id="blur" type="range" min="0" max="16" value="1.5" step="0.5">
       <label class="range-label" for="size"><span>Type size</span><output id="size-value">100%</output></label>
-      <input id="size" type="range" min="65" max="130" value="100">
+      <input id="size" type="range" min="65" max="400" value="100">
       <label class="range-label" for="tracking"><span>Letter spacing</span><output id="tracking-value">0.00 em</output></label>
       <input id="tracking" type="range" min="-3" max="20" value="0" step="1">
       <label class="range-label" for="word-gap"><span>Word spacing</span><output id="word-gap-value">0.00 em</output></label>
       <input id="word-gap" type="range" min="-8" max="60" value="0" step="1">
+      <label class="range-label" for="line-spacing"><span>Line spacing</span><output id="line-spacing-value">15%</output></label>
+      <input id="line-spacing" type="range" min="0" max="150" value="15" step="1">
+      <label class="range-label">Cursor size <output data-cursor-size-value>100%</output></label>
+      <input data-cursor-size aria-label="Cursor size" type="range" min="24" max="96" value="48">
       <div class="legend"><div class="legend-gradient"></div><span>LIGHT / 100</span><span>HEAVY / 900</span></div>
       <p class="note">Every word and every space owns a gradient. Its measured width sets the color boundary. Weight follows the color from heavy to light.</p>
     </aside>

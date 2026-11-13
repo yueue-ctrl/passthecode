@@ -11,6 +11,8 @@ const replayFullLayout = document.querySelector('#replay-full-layout');
 const replayFontSize = document.querySelector('#replay-font-size');
 const replayInkStrength = document.querySelector('#replay-ink-strength');
 const replayInkSize = document.querySelector('#replay-ink-size');
+// Start each load at the editor's native proportions, even when the browser restores form values.
+for (const control of [replayFontSize, replayInkStrength, replayInkSize]) control.value = control.defaultValue;
 const replayAppearance = [replayWords, replayFullLayout, replayFontSize, replayInkStrength, replayInkSize, replayTextColor, replayBackground];
 const replayGraphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 const replayPlay = document.querySelector('#replay-play');
@@ -36,25 +38,21 @@ function captureReplayWords(stage, bounds) {
   const range = document.createRange();
   const words = [];
   const save = (text, rect, token, start = token.index) => words.push({
-    text, start, offset: token.index, whole: token[0],
+    text, start, offset: token.index, whole: token[0], space: /^\s+$/u.test(token[0]),
     x: (rect.left - bounds.left - field.scrollLeft) / bounds.width,
     y: (rect.top - bounds.top - field.scrollTop + rect.height / 2) / bounds.height,
     width: rect.width / bounds.width,
   });
-  for (const match of field.value.matchAll(/\S+/gu)) {
-    range.setStart(node, match.index);
-    range.setEnd(node, match.index + match[0].length);
-    const rects = range.getClientRects();
-    if (rects.length === 1) {
-      save(match[0], rects[0], match);
-      continue;
-    }
+  for (const part of new Intl.Segmenter(undefined, { granularity: 'word' }).segment(field.value)) {
+    const match = Object.assign([part.segment], { index: part.index });
     let offset = match.index;
-    for (const letter of match[0]) {
+    for (const { segment: letter } of replayGraphemes.segment(match[0])) {
       range.setStart(node, offset);
+      range.setEnd(node, offset + letter.length);
+      save(letter, range.getBoundingClientRect(), match, offset);
+      const position = (offset - match.index) / Math.max(1, match[0].length - 1);
+      words.at(-1).weight = Math.round(150 + 700 * (1 - position));
       offset += letter.length;
-      range.setEnd(node, offset);
-      save(letter, range.getBoundingClientRect(), match, offset - letter.length);
     }
   }
   const size = parseFloat(style.fontSize);
@@ -101,6 +99,8 @@ function recordReplayFrame(stage, point, person, type, change) {
   const blur = inkStyle.getPropertyValue(view === 'stack' ? '--stack-blur' : '--wash-blur').trim() || '6px';
   const viewport = {
     width: bounds.width, height: bounds.height, scrollX: field.scrollLeft, scrollY: field.scrollTop,
+    originX: parseFloat(getComputedStyle(field).paddingLeft) - field.scrollLeft,
+    originY: parseFloat(getComputedStyle(field).paddingTop) - field.scrollTop,
   };
   const sameLayout = type === 'move' && previous
     && previous.edit === edit
@@ -249,35 +249,51 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
   ctx.beginPath();
   ctx.rect(0, 0, width, height);
   ctx.clip();
+  // Text, spaces, gradients and caret share one recorded coordinate system.
+  const typeScale = replayFontSize.valueAsNumber / 100;
+  const originX = frame.viewport.originX ?? 0;
+  const originY = frame.viewport.originY ?? 0;
+  ctx.translate(originX, originY);
+  ctx.scale(typeScale, typeScale);
+  ctx.translate(-originX, -originY);
 
   const hit = Number.isFinite(beatAge)
     ? Math.max(0, 1 - beatAge / .28)
     : frame.type === 'edit' && !soundtrack ? Math.max(0, 1 - age / .2) * .6 : 0;
   const inkScale = replayInkSize.valueAsNumber / 100;
   const inkStrength = replayInkStrength.valueAsNumber / 100;
+  const beatStrength = soundtrack?.strengths?.[beat] ?? 1;
+  const waveEnergy = soundtrack ? .35 + hit * .65 * beatStrength : 1;
   for (const shape of frame.shapes) {
+    const wash = frame.view === 'wash';
     const span = shape.width * inkScale;
     const top = shape.y + shape.height * (1 - inkScale) / 2;
-    const wash = frame.view === 'wash';
-    ctx.globalAlpha = Math.min(1, (wash ? frame.inkOpacity : 1) * inkStrength);
-    ctx.filter = frame.view === 'rail' ? 'none' : `blur(${frame.blur})`;
-    if (frame.view === 'rail') {
-      ctx.fillStyle = `color-mix(in srgb, ${shape.color} ${30 + frame.inkOpacity * 60}%, ${background})`;
-    } else {
-      const tint = ctx.createLinearGradient(shape.x, 0, shape.x + span, 0);
-      if (wash) {
-        tint.addColorStop(0, shape.color);
-        tint.addColorStop(.68, `${shape.color}61`);
+    const opacity = Math.min(1, (wash ? frame.inkOpacity * waveEnergy : 1) * inkStrength);
+    ctx.filter = frame.view === 'rail' ? 'none' : `blur(${parseFloat(frame.blur) * typeScale}px)`;
+    // Authorship color stays fixed; music controls only its intensity and weight.
+    {
+      const color = shape.color;
+      ctx.globalAlpha = opacity;
+      if (frame.view === 'rail') {
+        ctx.fillStyle = `color-mix(in srgb, ${color} ${30 + frame.inkOpacity * 60}%, ${background})`;
       } else {
-        const strength = 38 + frame.inkOpacity * 60;
-        tint.addColorStop(.12, `color-mix(in srgb, ${shape.color} ${strength}%, ${background})`);
+        const tint = ctx.createLinearGradient(shape.x, 0, shape.x + span, 0);
+        if (wash) {
+          tint.addColorStop(0, color);
+          tint.addColorStop(.07, `${color}eb`);
+          tint.addColorStop(.55, `${color}66`);
+          tint.addColorStop(.9, `${color}14`);
+        } else {
+          const strength = 38 + frame.inkOpacity * 60;
+          tint.addColorStop(.12, `color-mix(in srgb, ${color} ${strength}%, ${background})`);
+        }
+        tint.addColorStop(1, `${color}00`);
+        ctx.fillStyle = tint;
       }
-      tint.addColorStop(1, `${shape.color}00`);
-      ctx.fillStyle = tint;
+      ctx.beginPath();
+      ctx.roundRect(shape.x, top, span, shape.height * inkScale, wash ? 0 : 5);
+      ctx.fill();
     }
-    ctx.beginPath();
-    ctx.roundRect(shape.x, top, span, shape.height * inkScale, wash ? 7 : 5);
-    ctx.fill();
   }
 
   const x = frame.x * width;
@@ -330,62 +346,55 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
   ctx.filter = 'none';
   const wordAge = soundtrack ? beatAge : age;
   const fullLayout = replayFullLayout.checked;
-  const wordFrame = replayFrames[wordIndex];
+  const wordFrame = frame;
   const nextBeat = soundtrack?.peaks[beat + 1];
   const wordWindow = beat >= 0 && nextBeat !== undefined
-    ? Math.min(.38, (nextBeat - soundtrack.peaks[beat]) * .9) : .38;
+    ? Math.max(.55, Math.min(1.4, (nextBeat - soundtrack.peaks[beat]) * 1.25)) : .95;
   if (replayWords.checked && wordFrame && wordAge >= 0 && wordAge < wordWindow) {
-    let next = wordIndex + 1;
-    while (replayFrames[next]?.type === 'move') next++;
-    const nextEdit = replayFrames[next];
     const tokens = new Map();
     for (const word of wordFrame.lettering.words) {
-      if (word.width > 0) tokens.set(word.offset, word.whole);
-    }
-    if (nextEdit?.type === 'edit' && wordFrame.type !== 'pass') {
-      for (const word of nextEdit.lettering.words) {
-        const token = tokens.get(word.offset);
-        if (token && word.whole.length > token.length && word.whole.startsWith(token)) {
-          tokens.delete(word.offset);
-        }
-      }
+      if (word.width > 0 && !word.space) tokens.set(word.offset, word.whole);
     }
     const offsets = [...tokens.keys()];
-    const count = Math.min(fullLayout ? 3 : 1, offsets.length);
+    const count = Math.min(fullLayout ? Math.max(8, Math.ceil(offsets.length * .7)) : 4, 24, offsets.length);
     const first = ((beat >= 0 ? beat : index) * count) % offsets.length;
     const reveals = new Map();
     for (let slot = 0; slot < count; slot++) {
-      const delay = slot * wordWindow * .18;
-      const duration = wordWindow * (count > 1 ? .64 : 1);
+      const delay = fullLayout ? slot / Math.max(1, count - 1) * wordWindow * .18 : 0;
+      const duration = wordWindow - delay;
       const progress = (wordAge - delay) / duration;
       if (progress > 0 && progress < 1) {
         const offset = offsets[(first + slot) % offsets.length];
         const length = [...replayGraphemes.segment(tokens.get(offset))].length;
         reveals.set(offset, {
-          remaining: Math.min(length, 1 + Math.floor(length * progress / .58)),
-          opacity: Math.min(1, progress / .1, (1 - progress) / .34),
+          remaining: Math.min(length, 1 + Math.floor(length * progress / .22)),
+          opacity: Math.min(1, progress / .035, (1 - progress) / .18),
         });
       }
     }
-    const scale = replayFontSize.valueAsNumber / 100;
+    const scale = 1;
     ctx.font = `${wordFrame.lettering.size * scale}px ${wordFrame.lettering.family}`;
-    ctx.textBaseline = 'middle';
+    ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = replayTextColor.value;
-    const rowStarts = new Map();
     for (const word of wordFrame.lettering.words) {
-      if (word.width <= 0) continue;
-      const row = Math.round(word.y * height);
-      if (!rowStarts.has(row)) rowStarts.set(row, word.x);
+      if (word.width <= 0 || word.space) continue;
       const reveal = reveals.get(word.offset);
       if (!reveal?.remaining) continue;
-      const start = rowStarts.get(row);
       ctx.globalAlpha = reveal.opacity;
+      const weight = Math.round(Math.min(900, 150 + ((word.weight ?? 400) - 150) * waveEnergy));
+      ctx.font = `${weight} ${wordFrame.lettering.size * scale}px ${wordFrame.lettering.family}`;
       const letters = [...replayGraphemes.segment(word.text)];
       const visible = letters.slice(0, reveal.remaining).map(letter => letter.segment).join('');
       reveal.remaining -= Math.min(reveal.remaining, letters.length);
       const wordViewport = wordFrame.viewport;
-      ctx.fillText(visible, (start + (word.x - start) * scale) * wordViewport.width,
-        word.y * wordViewport.height, word.width * wordViewport.width * scale * visible.length / word.text.length);
+      const metrics = ctx.measureText(visible);
+      const baseline = word.y * wordViewport.height
+        + (metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2;
+      ctx.save();
+      ctx.translate(word.x * wordViewport.width, baseline);
+      ctx.scale(word.width * wordViewport.width / Math.max(.001, metrics.width), 1);
+      ctx.fillText(visible, 0, 0);
+      ctx.restore();
     }
   }
   const tagOpacity = handoff ? Math.max(0, 1 - age / .85) : hit * .9;
@@ -526,7 +535,17 @@ replayMusic.addEventListener('change', async () => {
     audioContext ??= new AudioContext();
     const buffer = await audioContext.decodeAudioData(await file.arrayBuffer());
     if (request !== musicRequest) return;
-    soundtrack = { buffer, peaks: findMusicOnsets(buffer) };
+    const peaks = findMusicOnsets(buffer);
+    const channel = buffer.getChannelData(0);
+    const levels = peaks.map(time => {
+      const start = Math.floor(time * buffer.sampleRate);
+      const end = Math.min(channel.length, start + Math.round(buffer.sampleRate * .06));
+      let sum = 0;
+      for (let i = start; i < end; i += 4) sum += channel[i] ** 2;
+      return Math.sqrt(sum / Math.max(1, Math.ceil((end - start) / 4)));
+    });
+    const loudest = levels.reduce((maximum, level) => Math.max(maximum, level), .001);
+    soundtrack = { buffer, peaks, strengths: levels.map(level => Math.sqrt(level / loudest)) };
     replayStatus.textContent = soundtrack.peaks.length ? 'Music ready' : 'Music ready · using even timing';
   } catch {
     if (request === musicRequest) replayStatus.textContent = 'Could not read this MP3.';

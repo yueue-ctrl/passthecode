@@ -4,16 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code</title>
-  <link rel="stylesheet" href="style.css?v=cursor-library">
-  <script src="replay.js?v=cursor-library" defer></script>
-  <script src="editor.js?v=bloom" defer></script>
-  <script src="cursors.js?v=spectrum" defer></script>
+  <link rel="stylesheet" href="style.css?v=loading-pulse">
+  <script src="replay.js?v=more-original-text" defer></script>
+  <script src="editor.js?v=collaborator-colors" defer></script>
+  <script src="cursors.js?v=uniform-size" defer></script>
+  <link rel="stylesheet" href="cursors.css?v=uniform-size">
 </head>
 <body>
   <main id="stage">
     <button id="cursor-library-toggle" type="button" aria-expanded="false" aria-controls="cursor-library">Cursors <span aria-hidden="true">◧</span></button>
     <div id="mirror" aria-hidden="true"></div>
     <div id="ink" aria-hidden="true"></div>
+    <div id="type-layer" aria-hidden="true"></div>
     <textarea id="text" aria-label="Edit text" aria-keyshortcuts="Alt+1 Alt+2 Alt+3 Alt+4 Alt+5 Meta+Enter Control+Enter" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
     <div id="effects" aria-hidden="true"><div id="caret" class="beam"></div></div>
     <div id="ink-names" aria-hidden="true"></div>
@@ -29,7 +31,7 @@
       <div id="swatches" role="group" aria-label="Next collaborator"></div>
       <label id="opacity-control">Opacity <input id="opacity" type="range" min="10" max="70" value="55"></label>
       <label class="text-color-control">Text color <input id="editor-text-color" type="color" value="#191916"></label>
-      <label class="text-color-control">Background <input id="editor-background" type="color" value="#ffffff"></label>
+      <label class="text-color-control">Background <input id="editor-background" type="color" value="#f4f3f3"></label>
       <label id="view-control">View
         <select id="ink-view">
           <option value="wash">Text gradient</option>
@@ -46,13 +48,14 @@
     </header>
     <div id="cursor-palette" role="group" aria-label="Cursor gradient starting color"></div>
     <label class="cursor-enable"><input id="cursor-enable" type="checkbox" checked> Use in editor</label>
+    <label class="cursor-size-control">Cursor size <output data-cursor-size-value>100%</output><input data-cursor-size type="range" min="24" max="96" value="48"></label>
     <div id="cursor-grid" role="group" aria-label="Cursor styles"></div>
     <div id="cursor-test" tabindex="0" aria-label="Try selected cursor">
       <img id="cursor-test-image" alt="">
       <span id="cursor-test-name">Normal</span>
       <small>Move here to try</small>
     </div>
-    <p class="cursor-note">Five colors in every cursor. Pass shifts the gradient’s starting color.</p>
+    <p class="cursor-note">Every shape follows the current collaborator’s color when you Pass.</p>
   </aside>
   <dialog id="replay-dialog" aria-label="Edit replay">
     <canvas id="replay-canvas" width="1280" height="720" aria-label="Abstract playback of edits"></canvas>
@@ -60,8 +63,8 @@
       <label>Music <input id="replay-music" type="file" accept=".mp3,audio/mpeg"></label>
       <label><input id="replay-words" type="checkbox"> Show original text</label>
       <label class="text-color-control">Text color <input id="replay-text-color" type="color" value="#191916"></label>
-      <label class="text-color-control">Background <input id="replay-background" type="color" value="#ffffff"></label>
-      <label><input id="replay-full-layout" type="checkbox"> Stagger words in place</label>
+      <label class="text-color-control">Background <input id="replay-background" type="color" value="#f4f3f3"></label>
+      <label><input id="replay-full-layout" type="checkbox" checked> Stagger words in place</label>
       <label>Text size <input id="replay-font-size" type="range" min="50" max="220" value="100"></label>
       <label>Color intensity <input id="replay-ink-strength" type="range" min="0" max="150" value="100"></label>
       <label>Color size <input id="replay-ink-size" type="range" min="35" max="200" value="100"></label>

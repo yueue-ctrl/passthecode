@@ -1,0 +1,14 @@
+.custom-cursors body { cursor: var(--cursor-normal); }
+.custom-cursors :is(textarea, input[type="text"], input[type="number"]) { cursor: var(--cursor-text); }
+.custom-cursors :is(button, a, select, input[type="checkbox"], input[type="color"], input[type="file"], .file-label) { cursor: var(--cursor-link); }
+.custom-cursors :is(button, a):active { cursor: var(--cursor-link); }
+.custom-cursors input[type="range"] { cursor: var(--cursor-horizontal); }
+.custom-cursors input[type="range"]:active { cursor: var(--cursor-drag); }
+.custom-cursors :disabled { cursor: not-allowed; }
+.custom-cursors .cursor-loading #replay-canvas { cursor: var(--cursor-loading); }
+.custom-cursors #replay-canvas { cursor: var(--cursor-normal); }
+.custom-cursors .cursor-loading :is(#poster, #music, .file-label) { cursor: var(--cursor-loading); }
+
+.cursor-size-control { display: block; margin: 16px 0; font: 11px system-ui; }
+.cursor-size-control output { float: right; }
+.cursor-size-control input { display: block; width: 100%; margin-top: 10px; }
