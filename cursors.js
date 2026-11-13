@@ -59,7 +59,7 @@ function cursorAsset(style, color, press = 0, loadingPhase = 0) {
   // Reuse Normal's exact silhouette with only rotation and uniform scaling.
   const normalAngle = Math.atan2(27, 24.75) * 180 / Math.PI;
   const normalLength = Math.hypot(24.75, 27);
-  const cone = (x, y, angle, length) => `<g transform="translate(${x} ${y}) rotate(${angle - normalAngle}) scale(${length / normalLength}) translate(-9 -6)"><path d="M9 6 38 29Q35 34 29.5 37Z" fill="url(#shade)" stroke="none"/></g>`;
+  const cone = (x, y, angle, length) => `<g transform="translate(${x} ${y}) rotate(${angle - normalAngle}) scale(${length / normalLength}) translate(-9 -6)"><path d="M9 6 38 29C37.35 30.95 31.52 36.03 29.5 37Z" fill="url(#shade)" stroke="none"/></g>`;
   const inward = cone(24, 21, -90, 16);
   const outward = cone(24, 4, 90, 16);
   const rotate = (shape, angle, opacity = 1) => `<g transform="rotate(${angle} 24 24)" opacity="${opacity}">${shape}</g>`;
@@ -87,9 +87,9 @@ function cursorAsset(style, color, press = 0, loadingPhase = 0) {
       <linearGradient id="shade" gradientUnits="userSpaceOnUse" x1="38" y1="29" x2="29.5" y2="37">
         <stop offset="0" stop-color="${color}"/>
         <stop offset=".48" stop-color="${color}"/>
-        <stop offset=".64" stop-color="${shaded(.05)}"/>
-        <stop offset=".82" stop-color="${shaded(.16)}"/>
-        <stop offset="1" stop-color="${shaded(.32)}"/>
+        <stop offset=".64" stop-color="${shaded(.08)}"/>
+        <stop offset=".82" stop-color="${shaded(.27)}"/>
+        <stop offset="1" stop-color="${shaded(.5)}"/>
       </linearGradient>
       <g id="form">${shape}</g>
     </defs>

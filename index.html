@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code</title>
   <link rel="stylesheet" href="style.css?v=loading-pulse">
-  <script src="replay.js?v=more-original-text" defer></script>
+  <script src="replay.js?v=word-timing-controls" defer></script>
   <script src="editor.js?v=collaborator-colors" defer></script>
-  <script src="cursors.js?v=uniform-size" defer></script>
+  <script src="cursors.js?v=natural-cone-base" defer></script>
   <link rel="stylesheet" href="cursors.css?v=uniform-size">
 </head>
 <body>
@@ -64,7 +64,10 @@
       <label><input id="replay-words" type="checkbox"> Show original text</label>
       <label class="text-color-control">Text color <input id="replay-text-color" type="color" value="#191916"></label>
       <label class="text-color-control">Background <input id="replay-background" type="color" value="#f4f3f3"></label>
-      <label><input id="replay-full-layout" type="checkbox" checked> Stagger words in place</label>
+      <label>Word speed <input id="replay-word-speed" type="range" min="50" max="250" step="5" value="120"><output id="replay-word-speed-value">1.2×</output></label>
+      <label title="Longest interval between words when music has no beat">Max word gap <input id="replay-word-gap" type="range" min="0.1" max="2" step="0.05" value="0.45"><output id="replay-word-gap-value">0.45s</output></label>
+      <label>Word hold <input id="replay-word-hold" type="range" min="0.3" max="10" step="0.1" value="3"><output id="replay-word-hold-value">3.0s</output></label>
+      <label>Visible words <input id="replay-word-count" type="range" min="1" max="30" step="1" value="10"><output id="replay-word-count-value">10</output></label>
       <label>Text size <input id="replay-font-size" type="range" min="50" max="220" value="100"></label>
       <label>Color intensity <input id="replay-ink-strength" type="range" min="0" max="150" value="100"></label>
       <label>Color size <input id="replay-ink-size" type="range" min="35" max="200" value="100"></label>

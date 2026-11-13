@@ -3,17 +3,27 @@ const replayCanvas = document.querySelector('#replay-canvas');
 const replayDrawing = replayCanvas.getContext('2d');
 const replayMusic = document.querySelector('#replay-music');
 const replayWords = document.querySelector('#replay-words');
+const replayWordSpeed = document.querySelector('#replay-word-speed');
+const replayWordSpeedValue = document.querySelector('#replay-word-speed-value');
+replayWordSpeed.addEventListener('input', () => { replayWordSpeedValue.value = `${(replayWordSpeed.valueAsNumber / 100).toFixed(2).replace(/0$/, '')}×`; });
+const replayWordGap = document.querySelector('#replay-word-gap');
+const replayWordHold = document.querySelector('#replay-word-hold');
+const replayWordCount = document.querySelector('#replay-word-count');
+for (const [control, digits, unit] of [[replayWordGap, 2, 's'], [replayWordHold, 1, 's'], [replayWordCount, 0, '']]) {
+  control.addEventListener('input', () => {
+    document.querySelector(`#${control.id}-value`).value = `${control.valueAsNumber.toFixed(digits)}${unit}`;
+  });
+}
 const editorTextColor = document.querySelector('#editor-text-color');
 const replayTextColor = document.querySelector('#replay-text-color');
 const editorBackground = document.querySelector('#editor-background');
 const replayBackground = document.querySelector('#replay-background');
-const replayFullLayout = document.querySelector('#replay-full-layout');
 const replayFontSize = document.querySelector('#replay-font-size');
 const replayInkStrength = document.querySelector('#replay-ink-strength');
 const replayInkSize = document.querySelector('#replay-ink-size');
 // Start each load at the editor's native proportions, even when the browser restores form values.
 for (const control of [replayFontSize, replayInkStrength, replayInkSize]) control.value = control.defaultValue;
-const replayAppearance = [replayWords, replayFullLayout, replayFontSize, replayInkStrength, replayInkSize, replayTextColor, replayBackground];
+const replayAppearance = [replayWords, replayWordSpeed, replayWordGap, replayWordHold, replayWordCount, replayFontSize, replayInkStrength, replayInkSize, replayTextColor, replayBackground];
 const replayGraphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 const replayPlay = document.querySelector('#replay-play');
 const replayStop = document.querySelector('#replay-stop');
@@ -238,7 +248,56 @@ function makeReplayTimeline() {
   });
 }
 
-function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordIndex = index, intro = 1) {
+function replayWordReveals(frame, elapsed, beat) {
+  const tokens = new Map();
+  for (const word of frame.lettering.words) {
+    if (word.width > 0 && !word.space && /[\p{L}\p{N}]/u.test(word.whole)) tokens.set(word.offset, word.whole);
+  }
+  const reveals = new Map();
+  const sequence = playback?.wordSequence;
+  if (!sequence) {
+    for (const [offset, whole] of tokens) reveals.set(offset, { remaining: [...replayGraphemes.segment(whole)].length, opacity: 1, scale: 1, pulse: 1 });
+    return reveals;
+  }
+  const sinceLast = elapsed - (sequence.lastEmission ?? -Infinity);
+  const freshBeat = soundtrack && beat >= 0 && beat !== sequence.lastBeat;
+  const speed = replayWordSpeed.valueAsNumber / 100;
+  const maxGap = replayWordGap.valueAsNumber;
+  const due = soundtrack ? (freshBeat && sinceLast >= Math.min(.2 / speed, maxGap)) || sinceLast >= maxGap : sinceLast >= .35 / speed;
+  if (due) {
+    const available = new Map([...tokens].map(([offset, whole]) => [frame.edit.characters[offset], { offset, whole }]));
+    let id = sequence.order.find(id => !sequence.seen.has(id));
+    if (id === undefined && sequence.order.length) id = sequence.order[sequence.cycle % sequence.order.length];
+    const word = available.get(id);
+    if (word && word.whole === sequence.words.get(id)) {
+      if (sequence.seen.has(id)) sequence.cycle++;
+      sequence.seen.add(id);
+      sequence.lastEmission = elapsed;
+      sequence.lastBeat = beat;
+      // Refresh this word only; every other word keeps its independent lifetime.
+      sequence.active.delete(id);
+      sequence.active.set(id, { started: elapsed, duration: replayWordHold.valueAsNumber, slot: sequence.order.indexOf(id) });
+    }
+    while (sequence.active.size > replayWordCount.valueAsNumber) sequence.active.delete(sequence.active.keys().next().value);
+  }
+  for (const [id, held] of sequence.active) {
+    held.duration = replayWordHold.valueAsNumber;
+    const age = elapsed - held.started;
+    if (age > held.duration) { sequence.active.delete(id); continue; }
+    if (age < 0) continue;
+    const offset = [...tokens.keys()].find(offset => frame.edit.characters[offset] === id);
+    if (offset === undefined) continue;
+    const pulse = .92 + .18 * ((Math.sin(age * Math.PI * 2 / 1.4 - held.slot * .35) + 1) / 2);
+    reveals.set(offset, {
+      remaining: [...replayGraphemes.segment(tokens.get(offset))].length,
+      opacity: Math.min(1, age / Math.min(.09, held.duration * .15), (held.duration - age) / Math.min(.4, held.duration * .25)),
+      scale: .97 + .03 * Math.min(1, age / .12), pulse,
+    });
+  }
+  return reveals;
+}
+
+function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordIndex = index, intro = 1, elapsed = 0) {
   const ctx = replayDrawing;
   const background = replayBackground.value;
   ctx.fillStyle = background;
@@ -264,11 +323,17 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
   const inkStrength = replayInkStrength.valueAsNumber / 100;
   const beatStrength = soundtrack?.strengths?.[beat] ?? 1;
   const waveEnergy = soundtrack ? .35 + hit * .65 * beatStrength : 1;
+  const reveals = replayWordReveals(frame, elapsed, beat);
+  const heldWords = frame.lettering.words.filter(word => reveals.has(word.offset));
   for (const shape of frame.shapes) {
+    const held = replayWords.checked && heldWords.find(word =>
+      Math.abs(word.y * height - (shape.y + shape.height / 2)) < shape.height / 2 + 1
+      && word.x * width < shape.x + shape.width && (word.x + word.width) * width > shape.x);
+    const breath = held ? reveals.get(held.offset).pulse : 1;
     const wash = frame.view === 'wash';
     const span = shape.width * inkScale;
     const top = shape.y + shape.height * (1 - inkScale) / 2;
-    const opacity = Math.min(1, (wash ? frame.inkOpacity * waveEnergy : 1) * inkStrength);
+    const opacity = Math.min(1, (wash ? frame.inkOpacity * waveEnergy * breath : 1) * inkStrength);
     ctx.filter = frame.view === 'rail' ? 'none' : `blur(${parseFloat(frame.blur) * typeScale}px)`;
     // Authorship color stays fixed; music controls only its intensity and weight.
     {
@@ -281,7 +346,7 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
         if (wash) {
           tint.addColorStop(0, color);
           tint.addColorStop(.07, `${color}eb`);
-          tint.addColorStop(.55, `${color}66`);
+          tint.addColorStop(Math.min(.65, .55 * breath), `${color}66`);
           tint.addColorStop(.9, `${color}14`);
         } else {
           const strength = 38 + frame.inkOpacity * 60;
@@ -344,34 +409,8 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
     ctx.fill();
   }
   ctx.filter = 'none';
-  const wordAge = soundtrack ? beatAge : age;
-  const fullLayout = replayFullLayout.checked;
   const wordFrame = frame;
-  const nextBeat = soundtrack?.peaks[beat + 1];
-  const wordWindow = beat >= 0 && nextBeat !== undefined
-    ? Math.max(.55, Math.min(1.4, (nextBeat - soundtrack.peaks[beat]) * 1.25)) : .95;
-  if (replayWords.checked && wordFrame && wordAge >= 0 && wordAge < wordWindow) {
-    const tokens = new Map();
-    for (const word of wordFrame.lettering.words) {
-      if (word.width > 0 && !word.space) tokens.set(word.offset, word.whole);
-    }
-    const offsets = [...tokens.keys()];
-    const count = Math.min(fullLayout ? Math.max(8, Math.ceil(offsets.length * .7)) : 4, 24, offsets.length);
-    const first = ((beat >= 0 ? beat : index) * count) % offsets.length;
-    const reveals = new Map();
-    for (let slot = 0; slot < count; slot++) {
-      const delay = fullLayout ? slot / Math.max(1, count - 1) * wordWindow * .18 : 0;
-      const duration = wordWindow - delay;
-      const progress = (wordAge - delay) / duration;
-      if (progress > 0 && progress < 1) {
-        const offset = offsets[(first + slot) % offsets.length];
-        const length = [...replayGraphemes.segment(tokens.get(offset))].length;
-        reveals.set(offset, {
-          remaining: Math.min(length, 1 + Math.floor(length * progress / .22)),
-          opacity: Math.min(1, progress / .035, (1 - progress) / .18),
-        });
-      }
-    }
+  if (replayWords.checked && wordFrame) {
     const scale = 1;
     ctx.font = `${wordFrame.lettering.size * scale}px ${wordFrame.lettering.family}`;
     ctx.textBaseline = 'alphabetic';
@@ -381,7 +420,7 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
       const reveal = reveals.get(word.offset);
       if (!reveal?.remaining) continue;
       ctx.globalAlpha = reveal.opacity;
-      const weight = Math.round(Math.min(900, 150 + ((word.weight ?? 400) - 150) * waveEnergy));
+      const weight = Math.round(Math.min(900, 150 + ((word.weight ?? 400) - 150) * waveEnergy * reveal.pulse));
       ctx.font = `${weight} ${wordFrame.lettering.size * scale}px ${wordFrame.lettering.family}`;
       const letters = [...replayGraphemes.segment(word.text)];
       const visible = letters.slice(0, reveal.remaining).map(letter => letter.segment).join('');
@@ -392,28 +431,10 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
         + (metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2;
       ctx.save();
       ctx.translate(word.x * wordViewport.width, baseline);
-      ctx.scale(word.width * wordViewport.width / Math.max(.001, metrics.width), 1);
+      ctx.scale(word.width * wordViewport.width / Math.max(.001, metrics.width) * reveal.scale, reveal.scale);
       ctx.fillText(visible, 0, 0);
       ctx.restore();
     }
-  }
-  const tagOpacity = handoff ? Math.max(0, 1 - age / .85) : hit * .9;
-  if (tagOpacity > 0) {
-    const name = handoff && previous?.person !== frame.person && previous
-      ? `${previous.person.name} → ${frame.person.name}` : frame.person.name;
-    ctx.font = '600 16px monospace';
-    ctx.textBaseline = 'middle';
-    const tagWidth = ctx.measureText(name).width + 22;
-    const left = Math.max(4, Math.min(x, width - tagWidth - 8));
-    const top = Math.max(4, y - 31 - (1 - tagOpacity) * 8);
-    ctx.globalAlpha = tagOpacity;
-    const tint = ctx.createLinearGradient(left, 0, left + tagWidth, 0);
-    tint.addColorStop(0, `${frame.color}aa`);
-    tint.addColorStop(1, `${frame.color}18`);
-    ctx.fillStyle = tint;
-    ctx.fillRect(left, top, tagWidth, 24);
-    ctx.fillStyle = '#171719';
-    ctx.fillText(name, left + 9, top + 12);
   }
   ctx.restore();
 }
@@ -445,13 +466,18 @@ function stopReplay(save = false) {
 async function startReplay(exportVideo) {
   if (playback || !replayFrames.length || musicLoading) return;
   const timing = makeReplayTimeline();
-  const run = {};
+  const lastScene = replayFrames.at(-1);
+  const finalWords = new Map();
+  for (const word of lastScene.lettering.words) {
+    if (!word.space && /[\p{L}\p{N}]/u.test(word.whole)) finalWords.set(lastScene.edit.characters[word.offset], word.whole);
+  }
+  const run = { wordSequence: { order: [...finalWords.keys()], words: finalWords, seen: new Set(), active: new Map(), cycle: 0, event: undefined } };
   playback = run;
   updateReplayControls();
   drawReplay();
-  const end = soundtrack
-    ? Math.min(soundtrack.buffer.duration, timing.at(-1) + .9)
-    : timing.at(-1) + .9;
+  let end = soundtrack
+    ? Math.min(soundtrack.buffer.duration, timing.at(-1) + finalWords.size * Math.max(replayWordGap.valueAsNumber, .35 / (replayWordSpeed.valueAsNumber / 100)) + replayWordHold.valueAsNumber + 1)
+    : timing.at(-1) + finalWords.size * Math.max(replayWordGap.valueAsNumber, .35 / (replayWordSpeed.valueAsNumber / 100)) + replayWordHold.valueAsNumber + 1;
 
   try {
     if (soundtrack) {
@@ -501,7 +527,8 @@ async function startReplay(exportVideo) {
       while (timing[wordIndex + 1] <= soundtrack?.peaks[beat]) wordIndex++;
       drawReplay(replayFrames[index], replayFrames[index - 1], time - timing[index],
         beat < 0 ? Infinity : time - soundtrack.peaks[beat], index, beat, soundtrack ? wordIndex : index,
-        Math.max(0, Math.min(1, (time - timing[0]) / .28)));
+        Math.max(0, Math.min(1, (time - timing[0]) / .28)), time);
+      if (!soundtrack && time >= end && run.wordSequence.seen.size < run.wordSequence.order.length) end = time + .5;
       if (time >= end) stopReplay(true);
       else run.frameRequest = requestAnimationFrame(tick);
     }
