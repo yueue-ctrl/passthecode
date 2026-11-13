@@ -67,9 +67,18 @@ function glyphBounds(phrase, rect, size) {
 function rebuild() {
   const fragment = document.createDocumentFragment();
   const nextPhrases = [];
-  for (const block of copy.value.split(/\n\s*\n/u)) {
+  const blocks = copy.value.split(/\n\s*\n/u);
+  const roles = ['headline', 'subtitle', 'invitation', 'schedule', 'address'];
+  const layoutBlocks = blocks.flatMap((text, index) => {
+    if (index === 2 && /^join\s+us$/iu.test(text.trim())) {
+      const words = text.trim().split(/\s+/u);
+      return [{ text: words[0], role: 'join' }, { text: words[1], role: 'us' }];
+    }
+    return [{ text, role: roles[index] ?? 'extra' }];
+  });
+  for (const { text: block, role } of layoutBlocks) {
     const paragraph = document.createElement('p');
-    paragraph.className = 'copy-block';
+    paragraph.className = `copy-block layout-${role}`;
     for (const token of wordSegmenter.segment(block)) {
       const element = document.createElement('span');
       element.className = token.isWordLike ? 'wave-word' : 'wave-space';
@@ -125,6 +134,26 @@ function draw(time) {
   const strength = response.valueAsNumber / 100;
   const bloom = spread.valueAsNumber / 100;
   const bounds = poster.getBoundingClientRect();
+  const infoRows = [];
+  if (Number(poster.style.getPropertyValue('--line-spacing')) === 0) {
+    for (const phrase of phrases) {
+      if (!phrase.element.closest('.layout-schedule, .layout-address')) continue;
+      const size = parseFloat(getComputedStyle(phrase.element).fontSize);
+      for (const rect of phrase.element.getClientRects()) {
+        if (rect.width <= .1) continue;
+        const ink = glyphBounds(phrase, rect, size);
+        const row = infoRows.find(row => Math.abs(row.rectTop - rect.top) < 2);
+        if (row) {
+          row.top = Math.min(row.top, ink.top);
+          row.bottom = Math.max(row.bottom, ink.bottom);
+        } else infoRows.push({ rectTop: rect.top, ...ink });
+      }
+    }
+    infoRows.sort((a, b) => a.rectTop - b.rectTop);
+    for (let i = 0; i < infoRows.length - 1; i++) infoRows[i].bottom = Math.max(infoRows[i].bottom, infoRows[i + 1].top);
+  }
+  const passPhrase = phrases.find(phrase => phrase.element.closest('.layout-headline') && phrase.element.textContent.toLowerCase() === 'pass');
+  const creativePhrase = phrases.find(phrase => phrase.element.closest('.layout-subtitle') && phrase.element.textContent.toLowerCase() === 'creative');
   for (const [index, phrase] of phrases.entries()) {
     let color = waveColors[index % waveColors.length];
     let colorCycle = 0;
@@ -140,7 +169,12 @@ function draw(time) {
     const wave = (Math.sin(phase * 2.1 - index * .68 - phrase.pause) + 1) / 2;
     const music = audio ? smoothedEnergy * .75 + smoothedLow * .25 : .58;
     const target = Math.min(1, (.055 + music * (.17 + wave * .95)) * strength);
-    if (running) phrase.energy += (target - phrase.energy) * .18;
+    if (phrase === creativePhrase && passPhrase) {
+      // Derive the second envelope from the first, avoiding independent smoothing drift.
+      const floor = Math.min(.055, strength);
+      const ceiling = Math.min(1, strength);
+      phrase.energy = floor + ceiling - Math.max(floor, Math.min(ceiling, passPhrase.energy));
+    } else if (running) phrase.energy += (target - phrase.energy) * .18;
     const energy = phrase.energy;
     const typeStyle = getComputedStyle(phrase.element.parentElement);
     const lineHeight = parseFloat(typeStyle.lineHeight);
@@ -170,7 +204,15 @@ function draw(time) {
         bands.append(band);
       }
       // Measure visible glyph ink, not the font's extra ascent/descent padding.
-      const { top: bandTop, bottom: bandBottom } = glyphBounds(phrase, rect, fontSize);
+      let { top: bandTop, bottom: bandBottom } = glyphBounds(phrase, rect, fontSize);
+      if (phrase.element.closest('.layout-schedule, .layout-address')) {
+        const row = infoRows.find(row => Math.abs(row.rectTop - rect.top) < 2);
+        if (row) {
+          const density = devicePixelRatio || 1;
+          bandTop = Math.floor(row.top * density) / density;
+          bandBottom = Math.ceil(row.bottom * density) / density;
+        }
+      }
       // Horizontal boundaries still belong precisely to each word or space.
       band.style.setProperty('--color', color);
       band.style.left = rect.left - bounds.left + 'px';
