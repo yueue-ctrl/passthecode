@@ -137,7 +137,7 @@ function renderKineticGrid(options) {
     const minY = Math.min(...ys);
     ys = ys.map(y => y - minY);
     const totalH = Math.max(...ys.map((y, i) => y + heights[i]));
-    const top = (height - totalH) / 2;
+    const top = 0;
     let x = (width - available) / 2;
     const cells = [];
     groups.forEach((group, i) => {
@@ -158,6 +158,8 @@ function renderKineticGrid(options) {
   if (progress >= .76 && !poster.gridMotionStart && poster.gridLastLayout) poster.gridMotionStart = poster.gridLastLayout;
   if (poster.gridMotionStart?.length === a.length) a = poster.gridMotionStart;
   const frame = a.map((cell, i) => Object.fromEntries(Object.keys(cell).map(key => [key, mix(cell[key], b[i][key], blend)])));
+  const frameTop = Math.min(...frame.map(cell => cell.y));
+  frame.forEach(cell => { cell.y -= frameTop; });
   poster.gridLastLayout = frame;
   Object.assign(composition.firstElementChild.style, { top: '0px', height: `${height}px` });
   items.forEach((item, index) => {

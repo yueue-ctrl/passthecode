@@ -511,3 +511,63 @@ updateStatus();
 requestAnimationFrame(draw);
 
 document.fonts.ready.then(() => glyphMetrics.clear());
+
+const backgroundInput = document.querySelector('#background-file');
+const backgroundMedia = document.querySelector('#background-media');
+const backgroundName = document.querySelector('#background-name');
+const backgroundRemove = document.querySelector('#background-remove');
+let backgroundUrl;
+let backgroundVersion = 0;
+backgroundInput.addEventListener('change', async () => {
+  const file = backgroundInput.files[0];
+  if (!file) return;
+  const version = ++backgroundVersion;
+  const video = file.type.startsWith('video/');
+  if (!video && !file.type.startsWith('image/')) {
+    backgroundName.hidden = false;
+    backgroundName.textContent = 'Choose an image or video.';
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  const media = document.createElement(video ? 'video' : 'img');
+  if (video) {
+    media.muted = true;
+    media.defaultMuted = true;
+    media.loop = true;
+    media.playsInline = true;
+    media.autoplay = true;
+  } else media.alt = '';
+  try {
+    await new Promise((resolve, reject) => {
+      media.addEventListener(video ? 'loadeddata' : 'load', resolve, { once: true });
+      media.addEventListener('error', reject, { once: true });
+      media.src = url;
+    });
+    if (version !== backgroundVersion) { URL.revokeObjectURL(url); return; }
+    backgroundMedia.querySelector('video')?.pause();
+    backgroundMedia.replaceChildren(media);
+    if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
+    backgroundUrl = url;
+    backgroundName.hidden = false;
+    backgroundName.textContent = file.name;
+    backgroundRemove.hidden = false;
+    if (video) await media.play().catch(() => {});
+  } catch {
+    URL.revokeObjectURL(url);
+    if (version === backgroundVersion) {
+      backgroundName.hidden = false;
+      backgroundName.textContent = 'Could not load this background.';
+    }
+  } finally { if (version === backgroundVersion) backgroundInput.value = ''; }
+});
+backgroundRemove.addEventListener('click', () => {
+  backgroundVersion++;
+  backgroundMedia.querySelector('video')?.pause();
+  backgroundMedia.replaceChildren();
+  if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
+  backgroundUrl = undefined;
+  backgroundInput.value = '';
+  backgroundName.textContent = '';
+  backgroundName.hidden = true;
+  backgroundRemove.hidden = true;
+});

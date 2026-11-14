@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code — Type waves</title>
-  <link rel="stylesheet" href="wave.css?v=wave-grid-corners">
-  <script src="wave-grid.js?v=wave-grid-corners" defer></script>
-  <script src="wave.js?v=wave-grid-corners" defer></script>
+  <link rel="stylesheet" href="wave.css?v=wave-grid-top">
+  <script src="wave-grid.js?v=wave-grid-top" defer></script>
+  <script src="wave.js?v=wave-grid-top" defer></script>
   <link rel="stylesheet" href="cursors.css?v=uniform-size">
   <script src="cursors.js?v=natural-cone-base" defer></script>
 </head>
@@ -15,6 +15,7 @@
   <main class="workspace fullscreen-format poster-format">
     <section class="preview" aria-label="Music responsive variable typography">
       <div class="poster" id="poster">
+        <div id="background-media" aria-hidden="true"></div>
         <div id="bands" aria-hidden="true"></div>
         <article id="composition"></article>
       </div>
@@ -52,6 +53,12 @@ BOSTON, MA</textarea>
         <button id="play" type="button">Pause demo</button>
       </div>
       <p id="track-name">No track selected · generated wave</p>
+      <label class="text-label" for="background-file">Background</label>
+      <div class="background-actions">
+        <label class="file-label">Upload image / video<input id="background-file" type="file" accept="image/*,video/*" aria-label="Upload background image or video"></label>
+        <button id="background-remove" type="button" hidden>Remove</button>
+      </div>
+      <p id="background-name" role="status" hidden></p>
       <label class="range-label" for="color-mode">Color mode</label>
       <select id="color-mode">
         <option value="original">Original colors</option>
