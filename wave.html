@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code — Type waves</title>
-  <link rel="stylesheet" href="wave.css?v=wave-fullscreen-poster">
-  <script src="wave-grid.js?v=wave-fullscreen-poster" defer></script>
-  <script src="wave.js?v=wave-fullscreen-poster" defer></script>
+  <link rel="stylesheet" href="wave.css?v=wave-poster-flush-top">
+  <script src="wave-grid.js?v=wave-poster-flush-top" defer></script>
+  <script src="wave.js?v=wave-poster-flush-top" defer></script>
   <link rel="stylesheet" href="cursors.css?v=uniform-size">
   <script src="cursors.js?v=natural-cone-base" defer></script>
 </head>
@@ -23,8 +23,6 @@
     <aside class="settings" aria-label="Composition controls" inert>
       <a class="back" href="./">↖ Back to editor</a>
       <a class="back" href="cursor-demo.html" style="float:right">Cursor demo ↗</a>
-      <h1>Color has weight.</h1>
-      <p class="description">A rhythm in color. A rhythm in type.</p>
       <label class="text-label" for="poster-format">Format</label>
       <select id="poster-format"><option value="poster">Poster</option><option value="single">Single-line poster</option><option value="grid">Kinetic grid</option></select>
       <div class="single-word-settings">
@@ -81,8 +79,6 @@ BOSTON, MA</textarea>
       <input id="line-spacing" type="range" min="0" max="150" value="0" step="1">
       <label class="range-label">Cursor size <output data-cursor-size-value>100%</output></label>
       <input data-cursor-size aria-label="Cursor size" type="range" min="24" max="96" value="48">
-      <div class="legend"><div class="legend-gradient"></div><span>LIGHT / 100</span><span>HEAVY / 900</span></div>
-      <p class="note">Every word and every space owns a gradient. Its measured width sets the color boundary. Weight follows the color from heavy to light.</p>
     </aside>
   </main>
 </body>

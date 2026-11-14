@@ -237,6 +237,15 @@ function draw(time) {
     composition.style.setProperty('--banner-y', `${opticalOffset * bannerFit}px`);
   }
   const bounds = poster.getBoundingClientRect();
+  if (posterFormat.value === 'poster') {
+    const headline = phrases.filter(p => p.element.closest('.layout-headline'));
+    const top = Math.min(...headline.map(p => glyphBounds(p, p.element.getBoundingClientRect(), parseFloat(getComputedStyle(p.element).fontSize) * 1.18).top));
+    if (Number.isFinite(top)) {
+      const current = parseFloat(composition.style.getPropertyValue('--poster-top')) || 0;
+      composition.style.setProperty('--poster-top', `${current - (top - bounds.top)}px`);
+    }
+  }
+
   const infoRows = [];
   if (Number(poster.style.getPropertyValue('--line-spacing')) === 0) {
     for (const phrase of phrases) {
@@ -257,13 +266,6 @@ function draw(time) {
   }
   const passPhrase = phrases.find(phrase => phrase.element.closest('.layout-headline') && phrase.element.textContent.toLowerCase() === 'pass');
   const creativePhrase = phrases.find(phrase => phrase.element.closest('.layout-subtitle') && phrase.element.textContent.toLowerCase() === 'creative');
-  const upperBandBottom = posterFormat.value === 'poster' ? Math.max(...phrases
-    .filter(p => p.element.closest('.layout-headline, .layout-subtitle'))
-    .map(p => {
-      const rect = p.element.getBoundingClientRect();
-      const size = parseFloat(getComputedStyle(p.element).fontSize) * 1.18;
-      return glyphBounds(p, rect, size).bottom;
-    })) : -Infinity;
   for (const [index, phrase] of phrases.entries()) {
     let color = waveColors[index % waveColors.length];
     let colorCycle = 0;
@@ -324,10 +326,6 @@ function draw(time) {
           bandTop = Math.floor(row.top * density) / density;
           bandBottom = Math.ceil(row.bottom * density) / density;
         }
-      }
-      if (phrase.element.closest('.layout-join') && Number(poster.style.getPropertyValue('--line-spacing')) === 0
-        && bandTop > upperBandBottom && bandTop - upperBandBottom < fontSize * .2) {
-        bandTop = upperBandBottom - .5;
       }
       if (singleLine) { bandTop = bounds.top; bandBottom = bounds.bottom; }
       // Horizontal boundaries still belong precisely to each word or space.

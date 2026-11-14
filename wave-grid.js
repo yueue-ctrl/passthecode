@@ -69,6 +69,18 @@ function renderKineticGrid(options) {
     { widths: [.44, .30, .26], align: 'top' },
     { widths: [.28, .18, .54], align: 'cascade' },
     { widths: [.30, .38, .32], align: 'valley' },
+    { widths: [.50, .18, .32], align: 'peak' },
+    { widths: [.20, .22, .58], align: 'rise' },
+    { widths: [.32, .40, .28], align: 'top' },
+    { widths: [.16, .18, .66], align: 'bottom' },
+    { widths: [.46, .26, .28], align: 'reverse' },
+    { widths: [.23, .35, .42], align: 'peak' },
+    { widths: [.33, .17, .50], align: 'up' },
+    { widths: [.40, .35, .25], align: 'rise' },
+    { widths: [.17, .29, .54], align: 'down' },
+    { widths: [.35, .20, .45], align: 'reverse' },
+    { widths: [.24, .44, .32], align: 'bottom' },
+    { widths: [.27, .18, .55], align: 'peak' },
   ];
   const position = clock * speed / 2.4;
   const step = Math.floor(position), progress = position - step;
@@ -87,6 +99,9 @@ function renderKineticGrid(options) {
     else if (state.align === 'up') ys = [heights[2], heights[2], 0];
     else if (state.align === 'down') ys = [0, 0, Math.max(heights[0], heights[1])];
     else if (state.align === 'cascade') ys = [0, heights[0] * .65, heights[0] * .65 + heights[1] * .65];
+    else if (state.align === 'peak') ys = [heights[1] * .7, 0, heights[1] * .7];
+    else if (state.align === 'rise') ys = [heights[1] + heights[2], heights[2], 0];
+    else if (state.align === 'reverse') ys = [heights[1] * .65 + heights[2] * .65, heights[2] * .65, 0];
     else ys = [0, max * .75, 0];
     // Keep every neighboring pair joined, including throughout interpolation.
     for (let i = 1; i < ys.length; i++) {
