@@ -81,7 +81,17 @@ function renderKineticGrid(options) {
     { widths: [.35, .20, .45], align: 'reverse' },
     { widths: [.24, .44, .32], align: 'bottom' },
     { widths: [.27, .18, .55], align: 'peak' },
-  ];
+    { widths: [.34, .16, .50], align: 'corner-down' },
+    { widths: [.20, .24, .56], align: 'corner-up' },
+    { widths: [.38, .22, .40], align: 'corner-valley' },
+    { widths: [.22, .30, .48], align: 'corner-peak' },
+    { widths: [.42, .16, .42], align: 'corner-down' },
+    { widths: [.18, .30, .52], align: 'corner-up' },
+    { widths: [.28, .24, .48], align: 'corner-valley' },
+    { widths: [.32, .18, .50], align: 'corner-peak' },
+  ].map((state, index) => ({ ...state,
+    prefixRatio: index < 24 && index % 3 === 0 ? 1 : index % 2 ? 2.5 : .4,
+  }));
   const position = clock * speed / 2.4;
   const step = Math.floor(position), progress = position - step;
   const t = Math.max(0, Math.min(1, (progress - .835) / .165));
@@ -90,19 +100,36 @@ function renderKineticGrid(options) {
   function layout(state) {
     const available = width * typeScale;
     const widths = state.widths.map((value, i) => mix([.30, .20, .50][i], value, amount));
-    const scales = metrics.map((m, i) => available * widths[i] / Math.max(1, m.width));
-    const heights = metrics.map((m, i) => (m.ascent + m.descent) * scales[i]);
+    // Share one type size, or choose an unmistakable size contrast (over 2:1 by default).
+    const ratio = Math.pow(state.prefixRatio, amount);
+    const prefixWidth = available * (widths[0] + widths[1]);
+    const theScale = prefixWidth / Math.max(1, metrics[0].width * ratio + metrics[1].width);
+    const scales = [theScale * ratio, theScale, available * widths[2] / Math.max(1, metrics[2].width)];
+    const alignedPrefix = state.prefixRatio === 1;
+    const groupBounds = metrics.map(m => ({ ...m }));
+    if (alignedPrefix) {
+      for (let i = 0; i < 2; i++) {
+        groupBounds[i].ascent = Math.max(metrics[0].ascent, metrics[1].ascent);
+        groupBounds[i].descent = Math.max(metrics[0].descent, metrics[1].descent);
+      }
+    }
+    const heights = groupBounds.map((m, i) => (m.ascent + m.descent) * scales[i]);
     const max = Math.max(...heights);
     let ys;
     if (state.align === 'top') ys = [0, 0, 0];
     else if (state.align === 'bottom') ys = heights.map(h => max - h);
     else if (state.align === 'up') ys = [heights[2], heights[2], 0];
     else if (state.align === 'down') ys = [0, 0, Math.max(heights[0], heights[1])];
+    else if (state.align === 'corner-down') ys = [0, heights[0], heights[0] + heights[1]];
+    else if (state.align === 'corner-up') ys = [heights[1] + heights[2], heights[2], 0];
+    else if (state.align === 'corner-valley') ys = [0, heights[0], heights[0] - heights[2]];
+    else if (state.align === 'corner-peak') ys = [heights[1], 0, heights[1]];
     else if (state.align === 'cascade') ys = [0, heights[0] * .65, heights[0] * .65 + heights[1] * .65];
     else if (state.align === 'peak') ys = [heights[1] * .7, 0, heights[1] * .7];
     else if (state.align === 'rise') ys = [heights[1] + heights[2], heights[2], 0];
     else if (state.align === 'reverse') ys = [heights[1] * .65 + heights[2] * .65, heights[2] * .65, 0];
     else ys = [0, max * .75, 0];
+    if (alignedPrefix) ys[1] = ys[0];
     // Keep every neighboring pair joined, including throughout interpolation.
     for (let i = 1; i < ys.length; i++) {
       ys[i] = Math.max(ys[i - 1] - heights[i], Math.min(ys[i - 1] + heights[i - 1], ys[i]));
@@ -117,7 +144,7 @@ function renderKineticGrid(options) {
       for (const item of group) {
         const w = item.advance * scales[i];
         cells.push({ x, y: top + ys[i], w, h: heights[i], scale: scales[i],
-          ascent: metrics[i].ascent, descent: metrics[i].descent });
+          ascent: groupBounds[i].ascent, descent: groupBounds[i].descent });
         x += w;
       }
     });
