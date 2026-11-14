@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code</title>
-  <link rel="stylesheet" href="style.css?v=loading-pulse">
-  <script src="replay.js?v=word-timing-controls" defer></script>
+  <link rel="stylesheet" href="style.css?v=thin-caret">
+  <script src="replay.js?v=thin-caret" defer></script>
   <script src="editor.js?v=collaborator-colors" defer></script>
   <script src="cursors.js?v=natural-cone-base" defer></script>
   <link rel="stylesheet" href="cursors.css?v=uniform-size">
@@ -22,6 +22,7 @@
     <ol id="handoffs" aria-label="Handoff history"></ol>
     <div id="controls">
       <a id="open-waves" href="wave.html">Type waves ↗</a>
+      <a href="cursor-demo.html">Cursor demo ↗</a>
       <button id="open-replay" type="button">Replay</button>
       <button id="pass" type="button">Pass ↗</button>
       <button id="color-toggle" type="button" popovertarget="colors" aria-label="Choose next collaborator"></button>
@@ -49,6 +50,7 @@
     <div id="cursor-palette" role="group" aria-label="Cursor gradient starting color"></div>
     <label class="cursor-enable"><input id="cursor-enable" type="checkbox" checked> Use in editor</label>
     <label class="cursor-size-control">Cursor size <output data-cursor-size-value>100%</output><input data-cursor-size type="range" min="24" max="96" value="48"></label>
+    <a href="cursor-demo.html" class="cursor-demo-link">Full-screen demo ↗</a>
     <div id="cursor-grid" role="group" aria-label="Cursor styles"></div>
     <div id="cursor-test" tabindex="0" aria-label="Try selected cursor">
       <img id="cursor-test-image" alt="">

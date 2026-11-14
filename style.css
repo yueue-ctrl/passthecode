@@ -138,7 +138,7 @@ body { margin: 0; background: var(--paper-color, white); color: var(--ink); }
   background: var(--beam-color, var(--accent));
   box-shadow: 0 0 6px var(--beam-color, var(--accent));
 }
-#caret { filter: blur(1.1px); }
+#caret { width: 3px; filter: blur(.6px); }
 #caret[hidden] { display: none; }
 .ribbon { height: 34px; border-radius: 5px; }
 #color-toggle, .swatch {

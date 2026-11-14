@@ -4,13 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code — Type waves</title>
-  <link rel="stylesheet" href="wave.css?v=subtitle-space-offset">
-  <script src="wave.js?v=seamless-info-rows" defer></script>
+  <link rel="stylesheet" href="wave.css?v=wave-fullscreen-poster">
+  <script src="wave-grid.js?v=wave-fullscreen-poster" defer></script>
+  <script src="wave.js?v=wave-fullscreen-poster" defer></script>
   <link rel="stylesheet" href="cursors.css?v=uniform-size">
   <script src="cursors.js?v=natural-cone-base" defer></script>
 </head>
 <body>
-  <main class="workspace">
+  <button id="wave-settings-toggle" type="button" aria-expanded="false" aria-label="Toggle poster settings">Settings</button>
+  <main class="workspace fullscreen-format poster-format">
     <section class="preview" aria-label="Music responsive variable typography">
       <div class="poster" id="poster">
         <div id="bands" aria-hidden="true"></div>
@@ -18,10 +20,23 @@
       </div>
       <span id="mode" class="wave-status" role="status"></span>
     </section>
-    <aside class="settings" aria-label="Composition controls">
+    <aside class="settings" aria-label="Composition controls" inert>
       <a class="back" href="./">↖ Back to editor</a>
+      <a class="back" href="cursor-demo.html" style="float:right">Cursor demo ↗</a>
       <h1>Color has weight.</h1>
       <p class="description">A rhythm in color. A rhythm in type.</p>
+      <label class="text-label" for="poster-format">Format</label>
+      <select id="poster-format"><option value="poster">Poster</option><option value="single">Single-line poster</option><option value="grid">Kinetic grid</option></select>
+      <div class="single-word-settings">
+        <label class="text-label" for="rotating-word">Pass the…</label>
+        <select id="rotating-word"><option value="auto">Auto · all words</option><option value="code">Code</option><option value="possibility">Possibility</option><option value="idea">Idea</option><option value="imagination">Imagination</option><option value="spark">Spark</option><option value="unexpected">Unexpected</option><option value="mic">Mic</option><option value="surprise">Surprise</option><option value="bug">Bug</option><option value="fun">Fun</option><option value="challenge">Challenge</option><option value="lead">Lead</option></select>
+      </div>
+      <div class="grid-mode-controls">
+        <label class="range-label" for="grid-motion">Grid motion <output id="grid-motion-value">80%</output></label>
+        <input id="grid-motion" type="range" min="0" max="100" value="80">
+        <label class="range-label" for="grid-speed">Grid speed <output id="grid-speed-value">1.0×</output></label>
+        <input id="grid-speed" type="range" min="40" max="180" step="5" value="100">
+      </div>
       <label class="text-label" for="copy">Text</label>
       <textarea id="copy" spellcheck="false">pass the code
 

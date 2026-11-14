@@ -405,7 +405,7 @@ function drawReplay(frame, previous, age, beatAge, index = 0, beat = -1, wordInd
     ctx.fillStyle = frame.color;
     ctx.filter = flash ? 'blur(2px)' : 'blur(1px)';
     ctx.beginPath();
-    ctx.roundRect(x - 4.5, y, 9, 36, 2);
+    ctx.roundRect(x - 1.5, y, 3, 36, 1);
     ctx.fill();
   }
   ctx.filter = 'none';

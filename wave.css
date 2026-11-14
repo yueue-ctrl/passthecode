@@ -85,3 +85,47 @@ input[type="range"] { width: 100%; accent-color: #1d1d18; }
   .settings { border-top: 1px solid #e3e3df; border-left: 0; }
   .poster { min-height: 660px; }
 }
+
+#poster-format { width: 100%; padding: 9px; border: 1px solid #e3e3df; border-radius: 5px; background: white; font: 12px "Inter Wave", sans-serif; }
+.poster.single-line { width: 100%; min-height: 0; height: 100dvh; aspect-ratio: auto; padding: 0; }
+.poster.single-line #composition { position: absolute; left: 0; top: calc(50% + var(--banner-y, 0px)); width: max-content; display: block; transform: translateY(-50%) scale(var(--banner-fit, 1)); transform-origin: left center; }
+.poster.single-line .layout-banner { margin: 0; padding: 0; font-size: 100px; line-height: 1; white-space: pre; overflow-wrap: normal; }
+.workspace.single-format #copy { min-height: 80px; }
+@media (max-width: 850px) { .poster.single-line { min-height: 0; padding: 0; } }
+
+.workspace.fullscreen-format { display: block; height: 100dvh; min-height: 0; }
+.workspace.fullscreen-format .preview { width: 100%; height: 100dvh; padding: 0; }
+.workspace.fullscreen-format .settings { position: fixed; z-index: 20; right: 16px; top: 64px; bottom: 16px; width: min(320px, calc(100vw - 32px)); padding: 24px; overflow-y: auto; border: 1px solid #e3e3df; border-radius: 10px; background: #fffffff2; backdrop-filter: blur(18px); transform: translateX(calc(100% + 24px)); opacity: 0; pointer-events: none; transition: transform 280ms ease, opacity 200ms; }
+.workspace.fullscreen-format.controls-open .settings { transform: translateX(0); opacity: 1; pointer-events: auto; }
+body:has(.fullscreen-format) { overflow: hidden; }
+#wave-settings-toggle { position: fixed; z-index: 21; top: 18px; right: 18px; padding: 9px 14px; border: 1px solid #00000012; border-radius: 30px; background: #ffffffc9; color: #191916; font: 11px "Inter Wave", sans-serif; backdrop-filter: blur(10px); }
+#wave-settings-toggle[hidden] { display: none; }
+
+.single-word-settings { display: none; }
+.single-format .single-word-settings { display: block; }
+#rotating-word { width: 100%; padding: 9px; border: 1px solid #e3e3df; border-radius: 5px; background: white; font: 12px "Inter Wave", sans-serif; }
+
+.poster.single-line .rotation-keyword { display: inline-block; position: relative; z-index: 2; }
+.keyword-emphasis { display: inline-block; transform: scale(var(--keyword-punch, 1)); transform-origin: left center; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .keyword-emphasis { transform: none; } }
+
+.grid-mode-controls { display: none; }
+.grid-format .grid-mode-controls { display: block; }
+.grid-format .single-word-settings { display: block; }
+.grid-format #copy { min-height: 228px; }
+.poster.grid-mode { width: 100%; height: 100dvh; min-height: 0; padding: 0; }
+.poster.grid-mode #composition { position: absolute; inset: 0; display: block; width: 100%; transform: none; }
+.layout-grid-row { position: absolute; left: 0; width: 100%; margin: 0; padding: 0; }
+.layout-grid-row > span { position: absolute; display: block; overflow: visible; white-space: pre; }
+.grid-cell-color { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, var(--grid-color), color-mix(in srgb, var(--grid-color) 88%, transparent) 7%, color-mix(in srgb, var(--grid-color) 48%, transparent) var(--grid-reach, 58%), color-mix(in srgb, var(--grid-color) 6%, transparent)); }
+.grid-cell-ink { position: absolute; left: 2px; bottom: 0; white-space: pre; font-family: "Inter Wave", sans-serif; font-weight: 400; line-height: 1.25; }
+@media (max-width:850px) { .poster.grid-mode { min-height: 0; padding: 0; } }
+
+.poster.grid-mode .grid-cell-color { clip-path: inset(0); z-index: 0; }
+.poster.grid-mode .grid-cell-ink { z-index: 2; }
+
+.workspace.poster-format .poster { width: 100%; height: 100dvh; min-height: 0; padding: 0; }
+.workspace.poster-format .preview { align-items: flex-start; justify-content: flex-start; }
+.workspace.poster-format #composition { transform: scale(1.18); transform-origin: left top; }
+
+.workspace.poster-format .layout-headline { top: calc(3px + 8px / 1.18); }

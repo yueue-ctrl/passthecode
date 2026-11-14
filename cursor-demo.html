@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pass the Code — Cursor demo</title>
+  <link rel="stylesheet" href="cursor-demo.css?v=smooth-inset-navigation"><link rel="stylesheet" href="cursors.css?v=uniform-size">
+  <script src="cursors.js?v=natural-cone-base" defer></script><script src="cursor-demo.js?v=smooth-inset-navigation" defer></script>
+</head>
+<body>
+  <main tabindex="0" id="demo-stage" aria-label="Animated cursor interaction demonstration">
+    <header class="demo-heading"><span>PASS THE CODE / CURSORS</span><span id="scene-counter">01 / 09</span></header>
+    <aside class="demo-sidebar" aria-label="Demonstration chapters">
+      <span class="sidebar-eyebrow">NOW SHOWING</span>
+      <div id="demo-chapters"><span id="chapter-dot" aria-hidden="true"></span><div id="chapter-list"></div></div>
+      <span id="scene-title" class="sr-only">Point & select</span>
+      <p id="scene-detail">Approach. Hover. Press. Release.</p>
+    </aside>
+    <div id="demo-card">
+      <span class="card-label">A shared space.</span>
+      <div id="demo-copy">pass the code</div>
+      <div id="demo-tile">creative coding</div>
+      <button id="demo-pass" type="button">Pass ↗</button>
+      <div id="demo-handle" aria-hidden="true"></div>
+    </div>
+    <img id="demo-pointer" alt="" aria-hidden="true">
+    <div id="demo-progress" aria-hidden="true"></div>
+  </main>
+  <nav class="demo-dock" aria-label="Demo controls">
+    <a href="./">↖ Editor</a><button id="demo-play" type="button">Pause</button>
+    <select id="demo-scene" aria-label="Scene" hidden></select>
+    <button id="demo-mode" type="button">Try it yourself</button>
+    <label>Size <input data-cursor-size aria-label="Cursor size" type="range" min="24" max="96" value="48"><output data-cursor-size-value>100%</output></label>
+    <button id="demo-fullscreen" type="button">Full screen ↗</button>
+  </nav>
+  <span id="demo-status" role="status" class="sr-only"></span>
+</body></html>
