@@ -58,3 +58,10 @@ button, select, a { color: inherit; }
   .demo-sidebar #scene-detail { margin: 6px 0 0; max-width: 100%; min-height: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .chapter { transition: none; } }
+
+#loading-disc { position: absolute; pointer-events: none; }
+#loading-disc[hidden] { display: none; }
+#demo-stage.disc-loading #demo-card, #demo-stage.disc-loading #demo-pointer { visibility: hidden; }
+
+#cone-demo { position: absolute; cursor: pointer; outline-offset: -8px; }
+#cone-demo[hidden] { display: none; }

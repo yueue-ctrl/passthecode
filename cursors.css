@@ -12,3 +12,5 @@
 .cursor-size-control { display: block; margin: 16px 0; font: 11px system-ui; }
 .cursor-size-control output { float: right; }
 .cursor-size-control input { display: block; width: 100%; margin-top: 10px; }
+
+.custom-cursors .cursor-loading, .custom-cursors .cursor-loading * { cursor: var(--cursor-loading) !important; }
