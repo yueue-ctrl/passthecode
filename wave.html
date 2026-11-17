@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="presentation-clean">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,9 +9,11 @@
   <script src="wave.js?v=wave-grid-top" defer></script>
   <link rel="stylesheet" href="cursors.css?v=live-cone-disc">
   <script src="cursors.js?v=exclusive-live-cursor" defer></script>
+  <link rel="stylesheet" href="presentation.css?v=zy-clean">
+  <script src="presentation.js?v=zy-clean" defer></script>
 </head>
 <body>
-  <button id="wave-settings-toggle" type="button" aria-expanded="false" aria-label="Toggle poster settings">Settings</button>
+  <button data-site-ui id="wave-settings-toggle" type="button" aria-expanded="false" aria-label="Toggle poster settings">Settings</button>
   <main class="workspace fullscreen-format poster-format">
     <section class="preview" aria-label="Music responsive variable typography">
       <div class="poster" id="poster">
@@ -19,11 +21,12 @@
         <div id="bands" aria-hidden="true"></div>
         <article id="composition"></article>
       </div>
-      <span id="mode" class="wave-status" role="status"></span>
+      <span data-site-ui id="mode" class="wave-status" role="status"></span>
     </section>
-    <aside class="settings" aria-label="Composition controls" inert>
+    <aside data-site-ui class="settings" aria-label="Composition controls" inert>
       <a class="back" href="./">↖ Back to editor</a>
       <a class="back" href="cursor-demo.html" style="float:right">Cursor demo ↗</a>
+      <a class="back trophy-entry" href="trophies.html" style="display:block;margin-top:16px">3D trophies ↗</a>
       <label class="text-label" for="poster-format">Format</label>
       <select id="poster-format"><option value="poster">Poster</option><option value="single">Single-line poster</option><option value="grid">Kinetic grid</option></select>
       <div class="single-word-settings">

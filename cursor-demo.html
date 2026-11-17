@@ -1,15 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="presentation-clean">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code — Cursor demo</title>
   <link rel="stylesheet" href="cursor-demo.css?v=cone-rotation-reverse"><link rel="stylesheet" href="cursors.css?v=live-cone-disc">
-  <script src="cursors.js?v=exclusive-live-cursor" defer></script><script src="cursor-demo.js?v=color-click-only" defer></script>
+  <script src="cursors.js?v=exclusive-live-cursor" defer></script><script src="cursor-demo.js?v=clean-presentation" defer></script>
+  <link rel="stylesheet" href="presentation.css?v=zy-clean">
+  <script src="presentation.js?v=zy-clean" defer></script>
 </head>
 <body>
   <main tabindex="0" id="demo-stage" aria-label="Animated cursor interaction demonstration">
-    <header class="demo-heading"><span>PASS THE CODE / CURSORS</span><span id="scene-counter">01 / 02</span></header>
-    <aside class="demo-sidebar" aria-label="Demonstration chapters">
+    <header data-site-ui class="demo-heading"><span>PASS THE CODE / CURSORS</span><span id="scene-counter">01 / 02</span></header>
+    <aside data-site-ui class="demo-sidebar" aria-label="Demonstration chapters">
       <span class="sidebar-eyebrow">NOW SHOWING</span>
       <div id="demo-chapters"><span id="chapter-dot" aria-hidden="true"></span><div id="chapter-list"></div></div>
       <span id="scene-title" class="sr-only">Cursor</span>
@@ -19,7 +21,7 @@
     <canvas id="loading-disc" aria-label="Cursor beam sweeping color into a loading disc" hidden></canvas>
     <div id="demo-progress" aria-hidden="true"></div>
   </main>
-  <nav class="demo-dock" aria-label="Demo controls">
+  <nav data-site-ui class="demo-dock" aria-label="Demo controls">
     <a href="./">↖ Editor</a><button id="demo-play" type="button">Pause</button>
 
     <button id="demo-fullscreen" type="button">Full screen ↗</button>

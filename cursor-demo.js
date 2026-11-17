@@ -42,8 +42,9 @@ scenes.forEach(([name], index) => {
 });
 function demoBase() {
   const w = demoStage.clientWidth, h = demoStage.clientHeight;
-  const rail = w <= 620 ? 0 : w <= 900 ? 205 : Math.max(260, w * .24);
-  return {x:rail, y:w <= 620 ? 180 : 60, width:w-rail, height:h-(w <= 620 ? 190 : 80)};
+  const clean = document.documentElement.classList.contains('presentation-clean');
+  const rail = clean || w <= 620 ? 0 : w <= 900 ? 205 : Math.max(260, w * .24);
+  return {x:rail, y:clean ? 0 : w <= 620 ? 180 : 60, width:w-rail, height:h-(clean ? 0 : w <= 620 ? 190 : 80)};
 }
 function drawCone(time, box) {
   const dpr = Math.min(devicePixelRatio || 1, 2), w = box.width, h = box.height;

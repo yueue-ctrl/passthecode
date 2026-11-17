@@ -1,0 +1,5 @@
+/* Shared, default-clean presentation mode. Artwork and engraved lettering stay visible. */
+html, body { background: var(--paper-color, #f4f3f3); }
+html.presentation-clean [data-site-ui] { display: none !important; }
+html.presentation-clean #demo-stage { height: 100dvh; }
+html.presentation-clean #demo-progress { display: none !important; }
