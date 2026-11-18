@@ -23,7 +23,7 @@ scene.background = new THREE.Color('#f4f3f3');
 const camera = new THREE.OrthographicCamera(-8, 8, 4, -4, .1, 100);
 const aim = new THREE.Vector3(0, 2.65, 0);
 let selected = -1, lightBackground = true;
-let autoplay = true, cycleTime = 0, awardSwitched = false;
+let autoplay = true, cycleTime = 0;
 const cycleDuration = 5.2;
 const turn = Math.PI * 2;
 let angle = 0, elevation = -.43, zoom = 1;
@@ -124,9 +124,9 @@ trophyPalette.forEach((item, i) => {
 function select(index, automated = false) {
   if (!automated) { autoplay = false; document.querySelector('#tour').textContent = 'Play awards'; }
   selected = index;
-  // The tour uses one fixed center; handoffs never move the camera or recreate its canvas.
+  // Keep all five on their own fixed axes; rotation never changes the row layout.
   models.forEach((model, i) => {
-    model.position.x = automated ? 0 : (i - 2) * 2.12;
+    model.position.x = (i - 2) * 2.12;
     contacts[i].position.x = model.position.x;
   });
   if (automated) aim.x = 0;
@@ -145,7 +145,7 @@ function select(index, automated = false) {
 document.querySelector('#tour').addEventListener('click', () => {
   autoplay = !autoplay;
   document.querySelector('#tour').textContent = autoplay ? 'Pause awards' : 'Play awards';
-  if (autoplay) { cycleTime = 0; awardSwitched = false; select(selected < 0 ? 0 : selected, true); }
+  if (autoplay) select(selected, true);
 });
 document.querySelector('#all').addEventListener('click', () => select(-1));
 document.querySelector('#reset').addEventListener('click', () => { angle = 0; elevation = -.43; zoom = 1; aim.y = 2.65; resize(); });
@@ -197,29 +197,24 @@ host.addEventListener('wheel', event => {
   event.preventDefault(); zoom = THREE.MathUtils.clamp(zoom * Math.exp(-event.deltaY * .001), .65, 2.4);
 }, { passive: false });
 host.addEventListener('webglcontextlost', event => { event.preventDefault(); error.hidden = false; error.textContent = '3D rendering paused. Reload the page to continue.'; });
-select(0, true);
+select(-1, true);
 viewHeight = targetHeight;
-aim.x = models[0].position.x;
+aim.x = 0;
 let previous;
 function draw(time) {
   const delta = Math.min(.08, previous === undefined ? .016 : (time - previous) / 1000); previous = time;
   if (autoplay && !document.hidden) {
     cycleTime += delta;
-    if (cycleTime >= cycleDuration) {
-      cycleTime %= cycleDuration;
-      awardSwitched = false;
-    }
-    const phase = cycleTime / cycleDuration;
-    // Back-to-back handoff at exactly half a turn: the next inscription arrives
-    // on the immediately following front, with no extra rotation or phase restart.
-    // Keep the rotation phase and camera framing continuous across that instant.
-    if (phase >= .5 && !awardSwitched) {
-      select((selected + 1) % models.length, true);
-      aim.x = models[selected].position.x;
-      awardSwitched = true;
-    }
-    // Shorter reading window, continuous acceleration into and out of the fast rear turn.
-    angle = turn * phase - .62 * Math.sin(turn * phase);
+    const stagger = .65;
+    const sequenceDuration = selected === -1 ? cycleDuration + stagger * (models.length - 1) : cycleDuration;
+    cycleTime %= sequenceDuration;
+    // Overlapping starts pass the motion along without waiting for a full turn.
+    models.forEach((model, i) => {
+      if (selected !== -1 && i !== selected) { model.rotation.y = 0; return; }
+      const delay = selected === -1 ? i * stagger : 0;
+      const phase = THREE.MathUtils.clamp((cycleTime - delay) / cycleDuration, 0, 1);
+      model.rotation.y = -(turn * phase - .62 * Math.sin(turn * phase));
+    });
   }
   const smooth = 1 - Math.exp(-delta * 9);
   const targetX = selected === -1 ? 0 : models[selected].position.x;
