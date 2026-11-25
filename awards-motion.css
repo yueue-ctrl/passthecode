@@ -1,0 +1,12 @@
+html:has(.awards-story),body.awards-story{min-height:100dvh;background:linear-gradient(180deg,#101010 0%,#202020 25%,#414141 58%,#777 100%)!important;color:#111}
+.awards-story #trophy-view{left:42%;width:64%;right:auto;z-index:0;mask-image:linear-gradient(90deg,transparent 0%,#000 15%,#000 100%);-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 15%,#000 100%)}
+.award-soft-edge{position:fixed;inset:0 auto 0 41%;width:12%;pointer-events:none;z-index:1;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);mask-image:linear-gradient(90deg,transparent,#000 35%,#000 55%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 35%,#000 55%,transparent)}
+#award-rail{z-index:2;position:fixed;inset:0 53% 0 0;overflow:hidden;padding:0 clamp(18px,1.9vw,40px)}
+#award-list{display:flex;flex-direction:column;gap:clamp(24px,3.7vh,48px);will-change:transform}
+.award-card{display:block;flex:none;text-align:left;width:100%;min-height:23.5vh;padding:clamp(22px,2.7vw,54px) clamp(28px,4vw,80px);border-radius:clamp(32px,4vw,80px);background:#d9d9d9;color:#999;transition:background-color .7s ease,color .7s ease;cursor:pointer}
+.award-card.active{background:var(--award-color);color:#000}
+.award-card h2{font-size:clamp(22px,2.6vw,55px);line-height:1.05;letter-spacing:-.045em;font-weight:550;margin:0 0 1.6vh}
+.award-card p{font-size:clamp(16px,1.85vw,37px);font-weight:450;line-height:1.22;letter-spacing:-.035em;margin:0}
+.awards-story header,.awards-story footer{color:#999;z-index:3}.awards-story .intro,.awards-story .palette{display:none}
+.awards-story footer .hint{display:none}
+@media(max-width:650px){#award-rail{right:44%;padding:0 12px}.awards-story #trophy-view{left:50%;width:56%}.award-soft-edge{left:49%;width:13%}.award-card{padding:18px 20px;min-height:25vh;border-radius:30px}.award-card h2{font-size:22px;margin-bottom:12px}.award-card p{font-size:16px}}

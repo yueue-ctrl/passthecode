@@ -17,7 +17,7 @@ let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 let fontURL = root.appendingPathComponent("assets/InterVariable.ttf")
 CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
 let width = 2048, height = 2048
-let labels = ["Audience Choice", "Innovation Award", "Best Visuals", "Best Collaboration", "Best Transformation"]
+let labels = ["Audience Choice", "Innovation Award", "Best Visual", "Best Collaboration", "Best Transformation"]
 let slugs = ["lemon", "lime", "cyan", "blue", "magenta"]
 let palette: [[UInt8]] = [[239,255,53], [141,255,0], [0,226,250], [18,153,255], [255,0,200]]
 let colorSpace = CGColorSpaceCreateDeviceRGB()

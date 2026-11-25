@@ -3,7 +3,7 @@ import * as THREE from './assets/vendor/three.module.js';
 export const trophyPalette = [
   { name: 'Lemon', award: 'Audience Choice', color: '#efff35', slug: 'lemon' },
   { name: 'Lime', award: 'Innovation Award', color: '#8dff00', slug: 'lime' },
-  { name: 'Cyan', award: 'Best Visuals', color: '#00e2fa', slug: 'cyan' },
+  { name: 'Cyan', award: 'Best Visual', color: '#00e2fa', slug: 'cyan' },
   { name: 'Blue', award: 'Best Collaboration', color: '#1299ff', slug: 'blue' },
   { name: 'Magenta', award: 'Best Transformation', color: '#ff00c8', slug: 'magenta' },
 ];
@@ -52,8 +52,8 @@ function getEngravedTextures(hex) {
   const item = trophyPalette.find(item => item.color === hex) || trophyPalette[0];
   if (!trophyTextureCache.has(item.slug)) {
     const loader = new THREE.TextureLoader();
-    const map = loader.load(new URL(`./assets/trophies/${item.slug}-engraved-color.png?v=extralight-incised-text`, import.meta.url).href);
-    const normalMap = loader.load(new URL(`./assets/trophies/${item.slug}-engraved-normal.png?v=extralight-incised-text`, import.meta.url).href);
+    const map = loader.load(new URL(`./assets/trophies/${item.slug}-engraved-color.png?v=award-visual-singular`, import.meta.url).href);
+    const normalMap = loader.load(new URL(`./assets/trophies/${item.slug}-engraved-normal.png?v=award-visual-singular`, import.meta.url).href);
     map.colorSpace = THREE.SRGBColorSpace;
     for (const texture of [map, normalMap]) {
       texture.flipY = false;
