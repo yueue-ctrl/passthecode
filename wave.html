@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pass the Code — Type waves</title>
-  <link rel="stylesheet" href="wave.css?v=wave-grid-top">
+  <link rel="stylesheet" href="wave.css?v=grouped-long-phrases">
   <script src="wave-grid.js?v=wave-grid-top" defer></script>
-  <script src="wave.js?v=wave-grid-top" defer></script>
+  <script src="wave.js?v=grouped-long-phrases" defer></script>
   <link rel="stylesheet" href="cursors.css?v=live-cone-disc">
   <script src="cursors.js?v=exclusive-live-cursor" defer></script>
   <link rel="stylesheet" href="presentation.css?v=zy-clean">
@@ -27,9 +27,11 @@
       <a class="back" href="./">↖ Back to editor</a>
       <a class="back" href="cursor-demo.html" style="float:right">Cursor demo ↗</a>
       <a class="back trophy-entry" href="trophies.html" style="display:block;margin-top:16px">3D trophies ↗</a>
+      <a class="back" href="ring.html" style="display:block;margin-top:16px">3D ring ↗</a>
       <a class="back" href="logo-motion.html" style="display:block;margin-top:16px">Logo motion ↗</a>
       <label class="text-label" for="poster-format">Format</label>
-      <select id="poster-format"><option value="poster">Poster</option><option value="single">Single-line poster</option><option value="grid">Kinetic grid</option></select>
+      <select id="poster-format"><option value="poster">Poster</option><option value="single">Single-line poster</option><option value="grid">Kinetic grid</option><option value="long">Long single line</option></select>
+      <div class="long-line-settings"><a class="back" href="ribbon.html" style="display:block;margin:12px 0">Double-sided loop mockup ↗</a><label class="range-label" for="long-speed">Line travel <output id="long-speed-value">60</output></label><input id="long-speed" type="range" min="0" max="150" value="60"></div>
       <div class="single-word-settings">
         <label class="text-label" for="rotating-word">Pass the…</label>
         <select id="rotating-word"><option value="auto">Auto · all words</option><option value="code">Code</option><option value="possibility">Possibility</option><option value="idea">Idea</option><option value="imagination">Imagination</option><option value="spark">Spark</option><option value="unexpected">Unexpected</option><option value="mic">Mic</option><option value="surprise">Surprise</option><option value="bug">Bug</option><option value="fun">Fun</option><option value="challenge">Challenge</option><option value="lead">Lead</option></select>

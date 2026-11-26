@@ -88,7 +88,7 @@ input[type="range"] { width: 100%; accent-color: #1d1d18; }
 
 #poster-format { width: 100%; padding: 9px; border: 1px solid #e3e3df; border-radius: 5px; background: white; font: 12px "Inter Wave", sans-serif; }
 .poster.single-line { width: 100%; min-height: 0; height: 100dvh; aspect-ratio: auto; padding: 0; }
-.poster.single-line #composition { position: absolute; left: 0; top: calc(50% + var(--banner-y, 0px)); width: max-content; display: block; transform: translateY(-50%) scale(var(--banner-fit, 1)); transform-origin: left center; }
+.poster.single-line #composition { position: absolute; left: 0; top: calc(50% + var(--banner-y, 0px)); width: max-content; display: block; transform: translateX(var(--banner-x, 0px)) translateY(-50%) scale(var(--banner-fit, 1)); transform-origin: left center; }
 .poster.single-line .layout-banner { margin: 0; padding: 0; font-size: 100px; line-height: 1; white-space: pre; overflow-wrap: normal; }
 .workspace.single-format #copy { min-height: 80px; }
 @media (max-width: 850px) { .poster.single-line { min-height: 0; padding: 0; } }
@@ -136,3 +136,9 @@ body:has(.fullscreen-format) { overflow: hidden; }
 .background-actions .file-label { flex: 1; text-align: center; }
 .background-actions button { flex: 0; }
 #background-name { margin: 8px 0 0; color: #707068; font-size: 10px; overflow-wrap: anywhere; }
+
+.long-line-settings{display:none}.long-format .long-line-settings{display:block}
+.long-format .single-word-settings{display:none}
+.poster.long-line .word-ink{transform:none}
+
+.poster.long-line .wave-word{display:inline-block;margin-right:.65em}

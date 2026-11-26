@@ -17,6 +17,7 @@ const passWords = ['code', 'possibility', 'idea', 'imagination', 'spark', 'unexp
 let wordTransition = { state: 'hold', age: 0 };
 let keywordOpacity = 1;
 let smoothBannerFit;
+let longClock = 0;
 const wordEase = value => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
 function setPassWord(word) {
   const match = copy.value.trim().match(/^(pass\s+the\s+)(\S+)$/iu);
@@ -68,7 +69,7 @@ function updatePassWord(delta) {
   } else keywordOpacity = 1;
 }
 let previousFormat = 'poster';
-const formatCopies = { poster: copy.value, single: 'pass the code', grid: 'pass the code' };
+const formatCopies = { poster: copy.value, single: 'pass the code', grid: 'pass the code', long: passWords.map(word => `pass the ${word}`).join('   ') };
 let gridClock = 0;
 let gridWordCycle = -1;
 const waveColors = ['#efff35', '#8dff00', '#00e2fa', '#1299ff', '#ff00c8'];
@@ -129,7 +130,7 @@ function rebuild() {
   const nextPhrases = [];
   const blocks = copy.value.split(/\n\s*\n/u);
   const roles = ['headline', 'subtitle', 'invitation', 'schedule', 'address'];
-  const layoutBlocks = posterFormat.value === 'single'
+  const layoutBlocks = ['single', 'long'].includes(posterFormat.value)
     ? [{ text: copy.value.replace(/\s*\n\s*/gu, ' '), role: 'banner' }]
     : posterFormat.value === 'grid'
       ? [{ text: copy.value.replace(/\s*\n\s*/gu, ' '), role: 'grid-row' }]
@@ -143,10 +144,13 @@ function rebuild() {
   for (const { text: block, role } of layoutBlocks) {
     const paragraph = document.createElement('p');
     paragraph.className = `copy-block layout-${role}`;
-    for (const token of wordSegmenter.segment(block)) {
+    const tokens = posterFormat.value === 'long'
+      ? (block.match(/pass\s+the\s+.*?(?=\s+pass\s+the\s+|$)/giu) || [block]).map((segment, index) => ({ segment: segment.trim(), index, isWordLike: true }))
+      : wordSegmenter.segment(block);
+    for (const token of tokens) {
       const element = document.createElement('span');
       element.className = token.isWordLike ? 'wave-word' : 'wave-space';
-      const keyword = ['banner', 'grid-row'].includes(role) ? block.match(/^pass\s+the\s+/iu) : null;
+      const keyword = posterFormat.value !== 'long' && ['banner', 'grid-row'].includes(role) ? block.match(/^pass\s+the\s+/iu) : null;
       if (keyword && token.index === keyword[0].length) element.classList.add('rotation-keyword');
       if (keyword && token.isWordLike && token.index < keyword[0].length) element.classList.add('rotation-anchor');
       const letters = [];
@@ -158,6 +162,7 @@ function rebuild() {
       }
       if (token.isWordLike) {
         for (const { segment } of graphemeSegmenter.segment(token.segment)) {
+          if (posterFormat.value === 'long' && /\s/u.test(segment)) { letterHost.append(document.createTextNode(segment)); continue; }
           const letter = document.createElement('span');
           letter.className = 'wave-letter';
           letter.textContent = segment;
@@ -222,15 +227,23 @@ function draw(time) {
     requestAnimationFrame(draw);
     return;
   }
-  const singleLine = posterFormat.value === 'single';
+  const longLine = posterFormat.value === 'long';
+  const singleLine = longLine || posterFormat.value === 'single';
   let bannerFit = 1;
   if (singleLine) {
     const text = composition.firstElementChild;
     const naturalWidth = text?.offsetWidth || 1;
-    const targetFit = poster.clientWidth / naturalWidth * typeSize.valueAsNumber / 100;
+    const targetFit = (longLine ? Math.min(poster.clientHeight * .16, poster.clientWidth * .045) / 100 : poster.clientWidth / naturalWidth) * typeSize.valueAsNumber / 100;
     smoothBannerFit = smoothBannerFit === undefined ? targetFit : smoothBannerFit + (targetFit - smoothBannerFit) * (1 - Math.exp(-Math.max(.001, delta) * 14));
     bannerFit = smoothBannerFit;
     composition.style.setProperty('--banner-fit', bannerFit);
+    if (longLine && running) longClock += delta;
+    const travel = longLine ? Math.max(0, naturalWidth * bannerFit - poster.clientWidth) : 0;
+    const speed = document.querySelector('#long-speed').valueAsNumber;
+    const distance = speed * (longClock - .8 * (1 - Math.exp(-longClock / .8)));
+    const progress = travel ? distance % (2 * travel) : 0;
+    const offset = travel ? travel - Math.abs(travel - progress) : 0;
+    composition.style.setProperty('--banner-x', `${-offset}px`);
     const metrics = measureGlyph(text.textContent || 'H', 100, 900);
     const opticalOffset = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent
       - metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) / 2;
@@ -327,7 +340,11 @@ function draw(time) {
           bandBottom = Math.ceil(row.bottom * density) / density;
         }
       }
-      if (singleLine) { bandTop = bounds.top; bandBottom = bounds.bottom; }
+      if (singleLine) {
+        const stripHeight = longLine ? 120 * bannerFit : bounds.height;
+        bandTop = bounds.top + (bounds.height - stripHeight) / 2;
+        bandBottom = bandTop + stripHeight;
+      }
       // Horizontal boundaries still belong precisely to each word or space.
       band.style.setProperty('--color', color);
       band.style.left = rect.left - bounds.left + 'px';
@@ -440,7 +457,10 @@ posterFormat.addEventListener('change', () => {
   formatCopies[previousFormat] = copy.value;
   previousFormat = posterFormat.value;
   copy.value = formatCopies[previousFormat];
-  poster.classList.toggle('single-line', previousFormat === 'single');
+  poster.classList.toggle('single-line', ['single', 'long'].includes(previousFormat));
+  poster.classList.toggle('long-line', previousFormat === 'long');
+  document.querySelector('.workspace').classList.toggle('long-format', previousFormat === 'long');
+  longClock = 0;
   poster.classList.toggle('grid-mode', previousFormat === 'grid');
   document.querySelector('.workspace').classList.toggle('grid-format', previousFormat === 'grid');
   document.querySelector('.workspace').classList.toggle('poster-format', previousFormat === 'poster');
@@ -571,3 +591,10 @@ backgroundRemove.addEventListener('click', () => {
   backgroundName.hidden = true;
   backgroundRemove.hidden = true;
 });
+
+const longSpeed = document.querySelector('#long-speed');
+longSpeed.addEventListener('input', () => { document.querySelector('#long-speed-value').value = longSpeed.value; });
+if (new URLSearchParams(location.search).get('format') === 'long') {
+  posterFormat.value = 'long';
+  posterFormat.dispatchEvent(new Event('change'));
+}
